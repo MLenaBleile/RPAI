@@ -1,0 +1,16 @@
+
+par(mfrow=c(2,2))
+setwd("~/Documents/Dissertation/RPAI/online/online-2pulse-2param-v1functional")
+source("test_engine.R")
+setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-2param-v3")
+source("test_engine_multi.R")
+setwd("~/Documents/Dissertation/RPAI/online/online-4pulse-2param")
+source("test_engine_multi.R")
+setwd("~/Documents/Dissertation/RPAI/online/online-5pulse-2param")
+source("test_engine_multi.R")
+
+par(mfrow=c(1,2))
+setwd("~/Documents/Dissertation/RPAI/online/online-2pulse-3param-v3")
+source("test_engine.R")
+setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-3param-v2")
+source("test_engine_multi.R")

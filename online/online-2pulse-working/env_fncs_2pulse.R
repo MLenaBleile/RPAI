@@ -23,7 +23,8 @@ sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, wait
   fit2=lm(timevec~log(one.sequence)*dose_vec+pd1_vec:dose_vec)
   ss=summary(fit)
   ss2=summary(fit2)
-  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared,ss2$coefficients[,1:2],ss2$r.squared, log(tail(one.sequence,11)))
+  out.seq=log(tail(one.sequence,20))
+  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared,ss2$coefficients[,1:2],ss2$r.squared)
   out
 }
 
@@ -56,16 +57,24 @@ replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mi
   targets=rep(NA, minisize)
   for(idx in 1:minisize){
     target = rewards_mini[idx]
-    if(dones_mini[idx]==0){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
+   
     targets[idx] = target
     
   }
   inputs=as.data.frame(state_mat_mini)
   inputs$actions=actions_mini
   inputs$actions2=actions_mini^2
-  #q.fit = nnet::nnet(targets~(.)+(.)*actions, data=scale(inputs), size=nnet_size)
-  #pca.obj = stats::prcomp(inputs)
-  q.fit = caret::pcaNNet(targets~(.)^2, data=inputs, size=30,linout=T, scale=T, maxit=50000)
+  inputs$targets=targets
+  
+  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(30), threshold = 100000,
+                    stepmax = 1, rep = 1, startweights = q.fit$weights,
+                    learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
+                                                                          plus = 1.2), learningrate = NULL, lifesign = "none",
+                    lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
+                    act.fct = "logistic", linear.output = TRUE, exclude = NULL,
+                    constant.weights = NULL, likelihood = FALSE)
 
+  #q.fit = nnet::nnet(targets~., data=inputs, size=30, Wts = q.fit$wts, maxit=1)
   q.fit
+
 }

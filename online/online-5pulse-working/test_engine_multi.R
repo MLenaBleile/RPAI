@@ -1,4 +1,3 @@
-test_num=100
 test_indices=1:test_num
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
@@ -12,7 +11,7 @@ agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
 reference_days=c(8)
 
 agent.outcome.vec=rep(NA, test_num)
-refdays = c(11, 14,20)
+refdays = c(11,14,20)
 ref.outcome.mat = matrix(NA, nrow=num_mice, ncol=length(refdays)+1)
 references = c(paste("day", refdays),"random")
 colnames(ref.outcome.mat) = references
@@ -37,7 +36,7 @@ for(mouse in 1:test_num){
   }
   for(ref.idx in 1:length(refdays)){
     ref = refdays[ref.idx]
-  one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
+  one.reference = generate_one(cumsum(rep(ref,num_free_pulses))+15, parameter_vec, maxtime = seqlength)
   ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
   one.random = sample(potential_actions,num_free_pulses, replace=T)

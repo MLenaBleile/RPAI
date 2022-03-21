@@ -76,7 +76,7 @@ for(mouse in 1:100){
   }
   for(ref.idx in 1:length(refdays)){
     ref = refdays[ref.idx]
-  one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
+  one.reference = generate_one(cumsum(rep(ref, num_free_pulses))+15, parameter_vec, maxtime = seqlength)
   ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
   one.random = sample(potential_actions,num_free_pulses, replace=T)

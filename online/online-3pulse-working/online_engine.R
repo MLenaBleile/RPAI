@@ -1,9 +1,9 @@
-  setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-working")
+  setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-3param-v4")
   source("data_generation_fncs.R")
   source("env_fncs.R")
   
   set.seed(1998)
-  max_epochs=10000
+  max_epochs=5000
   parameter_mat = make_parameter_mat(max_epochs+100)
   
   total_time=60
@@ -20,9 +20,10 @@
   dones = rep(NA, max_epochs)
   eps=1
   eps.vec=c(eps)
-  eps_decay=.9999
+  eps_decay=.9995
   epsilon_min=.1
-  minibatch_size=1000
+  minibatch_size=500
+  burn_in=1000
   epoch=1
   
   
@@ -36,8 +37,8 @@
   random.init$actions2 = random.init$actions^2
   
   #q.fit = lm(rnorm(nrow(state_mat))~(.)+(.)*actions+actions:actions, data=random.init)
-  
-  q.fit = caret::pcaNNet(rnorm(nrow(state_mat))~(.), data=random.init, size=10)
+  library(neuralnet)
+  q.fit = neuralnet(formula = V1~(.) , data=random.init, hidden = c(10,6), threshold = 10000,stepmax = 2, rep = 2)
   israndom=rep(T, max_epochs)
   while(epoch < max_epochs){
     mouse=mouse+1
@@ -70,8 +71,8 @@
       }
       nextstate_mat[epoch,] = one.next.state
 
-        if(epoch>=minibatch_size & (epoch%%minibatch_size==0)){
-          minibatch_idx = sample(1:epoch,1000)
+        if(epoch>=burn_in & (done)){
+          minibatch_idx = sample(1:epoch,minibatch_size)
           state_mat_mini = state_mat[minibatch_idx,]
           nextstate_mat_mini=nextstate_mat[minibatch_idx,]
           actions_mini = actions[minibatch_idx]
@@ -81,21 +82,14 @@
           
           
           q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini)
-          
+          if(eps>epsilon_min){eps = eps*eps_decay}
           
         }
-      active.eps.decay = eps_decay*(epoch>=minibatch_size & eps>epsilon_min) + 1*(epoch<minibatch_size | eps<= epsilon_min) 
-      if(eps>epsilon_min){eps = eps*active.eps.decay}else{}
       eps.vec=c(eps.vec, eps)
-      epoch = epoch+1
+      
       cat("\n epoch:", epoch, "reward:",one.reward)
+      epoch = epoch+1
       one.sequence=one.next.sequence
     }
-    # if(eps<=epsilon_min){
-    #   cat("\n finished due to small epsilon")
-    #   break
-    # }
   }
 
-minibatch_idx = 1:max_epochs
-q.fit = replay(q.fit,state_mat[minibatch_idx,],actions[minibatch_idx],nextstate_mat[minibatch_idx,], rewards[minibatch_idx], dones[minibatch_idx])

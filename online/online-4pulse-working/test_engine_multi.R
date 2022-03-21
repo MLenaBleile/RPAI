@@ -1,3 +1,33 @@
+setwd("~/Documents/Dissertation/RPAI/online/online-4pulse-3param")
+source("data_generation_fncs.R")
+source("env_fncs.R")
+
+set.seed(1998)
+max_epochs=9000
+test_num = 500
+parameter_mat = make_parameter_mat(max_epochs+test_num)
+
+total_time=100
+num_pulses=4
+num_free_pulses=num_pulses-1
+state_size =  total_time+15
+bellmann_error = rep(NA, max_epochs)
+waitime_vec=rep(10, num_free_pulses)
+state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
+nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
+potential_actions = 1:15
+action_size=length(potential_actions)
+actions = rep(NA, max_epochs)
+dones = rep(NA, max_epochs)
+eps=1
+eps.vec=c(eps)
+eps_decay=.999
+epsilon_min=.001
+minibatch_size=100
+burn_in = 1000
+
+q.fit=readRDS("model.rds")
+
 test_indices=1:test_num
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
@@ -11,7 +41,7 @@ agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
 reference_days=c(8)
 
 agent.outcome.vec=rep(NA, num_mice)
-refdays = c(10,14,20)
+refdays = c(10,14,25)
 ref.outcome.mat = matrix(NA, nrow=num_mice, ncol=length(refdays)+1)
 effect.sizes = rep(NA, ncol(ref.outcome.mat))
 references = c(paste("day", refdays), "random")
@@ -31,14 +61,14 @@ for(mouse in 1:num_mice){
     one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = action.vec, done=isdone, total_time=total_time,num_free_pulses = num_free_pulses)
     one.action = get_action(q.fit,one.state, potential_actions = potential_actions)+waitime_vec[1]
     action.vec=c(action.vec, one.action)
-    rt.days = cumsum(action.vec)+15
+    rt.days = cumsum(action.vec)+first.action
     seqlength = (max(rt.days)+waitime_vec[1]-2)*(1-isdone)+total_time*isdone
     one.sequence = generate_one(rt.days, parameter_vec, maxtime = seqlength)
-    current.time = cumsum(action.vec)+15
+    current.time = cumsum(action.vec)+first.action
   }
   for(ref.idx in 1:length(refdays)){
     ref = refdays[ref.idx]
-    one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
+    one.reference = generate_one(cumsum(c(ref,ref, ref))+first.action, parameter_vec, maxtime = seqlength)
     ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
   one.random = sample(potential_actions,num_free_pulses, replace=T)

@@ -1,3 +1,32 @@
+setwd("~/Documents/Dissertation/RPAI/online/online-2pulse-3param-v4")
+source("data_generation_fncs.R")
+source("env_fncs_2pulse.R")
+
+set.seed(1998)
+max_epochs=7000
+parameter_mat = make_parameter_mat(max_epochs+500)
+
+total_time=40
+total_days=total_time
+num_pulses=2
+num_free_pulses=num_pulses-1
+state_size = 31
+bellmann_error = rep(NA, max_epochs)
+waitime_vec=rep(7, num_pulses)
+state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
+nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
+potential_actions = 1:13
+action_size=length(potential_actions)
+actions = rep(NA, max_epochs)
+dones = rep(NA, max_epochs)
+eps=1
+eps.vec=c(eps)
+eps_decay=.55
+epsilon_min=.001
+minibatch_size=500
+epoch=1
+
+q.fit=readRDS("model.rds")
 test_indices=1:500
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
@@ -30,27 +59,28 @@ for(mouse in 1:num_mice){
 }
 
 
+
 reference_actions = c(reference_days, "random")
 selected_actions
 deltamodel = abs(optimal_actions-selected_actions)
 delta15 =abs(optimal_actions-reference_days[1])
 colors = c("red","blue","orange","purple")
 adj_factor=2
-plot(density(delta15-deltamodel, adjust = adj_factor), xlab="fixed x loss - agent x loss", main="Density plot", col="red",ylim=c(0,0.8), xlim=c(-10,10))
-for(refday.idx in 1:length(reference_days)){
-  cat("\n info for reference:",reference_days[refday.idx])
-  deltaref = abs(optimal_actions-reference_days[refday.idx])
-  lines(density(deltaref - deltamodel, adjust = adj_factor), col=colors[refday.idx])
-  one.delta=deltaref-deltamodel
-  print(t.test(deltaref-deltamodel))
-  cohen = mean(deltaref-deltamodel)/sd(deltaref-deltamodel)
-  cat("effect size: ", cohen)
-  print(100*(length(test_indices)-length(one.delta[one.delta<0]))/length(test_indices))
-}
-deltarandom = abs(optimal_actions-sample(7:17, num_mice, replace=T))-deltamodel
-lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel, adjust=adj_factor), col="purple")
-legend("topleft", legend=c(paste("day", reference_days),"random"), pch=16, col=colors)
-abline(v=0, lty=2)
+# plot(density(delta15-deltamodel, adjust = adj_factor), xlab="fixed x loss - agent x loss", main="Density plot", col="red",ylim=c(0,0.8), xlim=c(-10,10))
+# for(refday.idx in 1:length(reference_days)){
+#   cat("\n info for reference:",reference_days[refday.idx])
+#   deltaref = abs(optimal_actions-reference_days[refday.idx])
+#   lines(density(deltaref - deltamodel, adjust = adj_factor), col=colors[refday.idx])
+#   one.delta=deltaref-deltamodel
+#   print(t.test(deltaref-deltamodel))
+#   cohen = mean(deltaref-deltamodel)/sd(deltaref-deltamodel)
+#   cat("effect size: ", cohen)
+#   print(100*(length(test_indices)-length(one.delta[one.delta<0]))/length(test_indices))
+# }
+# deltarandom = abs(optimal_actions-sample(7:17, num_mice, replace=T))-deltamodel
+# lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel, adjust=adj_factor), col="purple")
+# legend("topleft", legend=c(paste("day", reference_days),"random"), pch=16, col=colors)
+# abline(v=0, lty=2)
 effect.sizes = rep(NA, 4)
 
 deltamodel = agent.outcomes-true.mins

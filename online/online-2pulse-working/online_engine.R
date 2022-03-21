@@ -3,14 +3,14 @@ source("data_generation_fncs.R")
 source("env_fncs_2pulse.R")
 
 set.seed(1998)
-max_epochs=7000
+max_epochs=600
 parameter_mat = make_parameter_mat(max_epochs+500)
 
 total_time=40
 total_days=total_time
 num_pulses=2
 num_free_pulses=num_pulses-1
-state_size = 31
+state_size = 20
 bellmann_error = rep(NA, max_epochs)
 waitime_vec=rep(7, num_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
@@ -21,9 +21,9 @@ actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)
 eps=1
 eps.vec=c(eps)
-eps_decay=.55
+eps_decay=.999
 epsilon_min=.001
-minibatch_size=500
+minibatch_size=64
 epoch=1
 
 
@@ -36,16 +36,17 @@ epoch=1
 random.init = as.data.frame(matrix(rnorm(length(state_mat)), nrow=nrow(state_mat), ncol=state_size))
 random.init$actions=sample(potential_actions,nrow(state_mat), replace=T)
 random.init$actions2 = random.init$actions^2
+random.init$targets = rnorm(nrow(random.init))
 
-#q.fit = lm(rnorm(nrow(state_mat))~(.)+(.)*actions+actions:actions, data=random.init)
-
-q.fit = caret::pcaNNet(rnorm(nrow(state_mat))~(.), data=random.init, size=10)
+library(neuralnet)
+q.fit = q.fit = neuralnet(formula = targets~(.) , data=random.init, hidden = c(30), threshold = 100000)
 israndom=rep(T, max_epochs)
+
 while(epoch < max_epochs){
   mouse=mouse+1
   action.vec=c()
   current.time=15-2+waitime_vec[1]
-  parameter_vec=parameter_mat[mouse+101,]
+  parameter_vec=parameter_mat[mouse+501,]
   one.sequence = generate_one(radiation_days=action.vec,parameter_vec=parameter_vec,maxtime = current.time)
   for(pulse in 1:(num_free_pulses)){
     one.state = sequence_to_state(one.sequence, action.vec, done, num_free_pulses=num_free_pulses)
@@ -68,8 +69,8 @@ while(epoch < max_epochs){
     rewards = c(rewards, one.reward)
     nextstate_mat[epoch,] = one.next.state
     
-      if(epoch>=minibatch_size & (epoch%%minibatch_size==0)){
-        minibatch_idx = 1:epoch
+      if(epoch>=minibatch_size){
+        minibatch_idx = sample(1:epoch, minibatch_size)
         state_mat_mini = state_mat[minibatch_idx,]
         nextstate_mat_mini=nextstate_mat[minibatch_idx,]
         actions_mini = actions[minibatch_idx]
@@ -96,10 +97,10 @@ while(epoch < max_epochs){
   # }
 }
 
-dones[epoch]=1
+#dones[epoch]=1
 inputs=as.data.frame(state_mat)
 inputs$actions=actions
 inputs$actions2=actions^2
-inputs$actions3=actions^3
-train_idx = setdiff(1:4999,1:100)
-q.fit = caret::pcaNNet(rewards[train_idx]~(.)^2, data=inputs[train_idx,], size=30,linout=T, scale=T, maxit=50000)
+#inputs$actions3=actions^3
+train_idx = 1:(epoch-1)
+q.fit = nnet::nnet(rewards[train_idx]~(.), data=inputs[train_idx,],size=30,linout=T, scale=T, maxit=50000)

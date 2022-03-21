@@ -78,6 +78,8 @@ for(ref.idx in 1:ncol(ref.outcome.mat)){
   print(mean(delta[delta>0]))
   cat("proportion of times agent was better than", colnames(ref.outcome.mat)[ref.idx],"day spacing:" )
   print(1-length(delta[delta<=0])/100)
+  cat("proportion of times agent was at least as good as", colnames(ref.outcome.mat)[ref.idx],"day spacing:" )
+  print(1-length(delta[delta<0])/100)
   cat("proportion of times ", colnames(ref.outcome.mat)[ref.idx],"was better than random" )
   print(1-length(delta[delta2<=0])/100)
 }

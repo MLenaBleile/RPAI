@@ -23,7 +23,7 @@ for(mouse in 1:num_mice){
   }
   one.sequence = data_mat[mouse,]
   one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = c(), done=T, num_free_pulses = 1)
-  one.action = get_action(q.fit,one.state, potential_actions = 1:10)+7
+  one.action = get_action(q.fit,one.state, potential_actions = 1:13)+waitime_vec[1]
   selected_actions=c(selected_actions, one.action)
   one.agent.treated.sequence = generate_one(one.action+15, parameter_vec=parameter_vec, maxtime=total_days)
   agent.outcomes[mouse] = log(one.agent.treated.sequence[total_days])

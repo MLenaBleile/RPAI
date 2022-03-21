@@ -46,21 +46,34 @@ get_action = function(q.fit,one.state, potential_actions){
   best_action
 }
 
+sigmoid =function(x)
+{
+  (1+exp(-x))^(-1)
+}
 replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,nnet_size=5, gam=.99, potential_actions=1:10){
   minisize=nrow(state_mat_mini)
   targets=rep(NA, minisize)
   for(idx in 1:minisize){
     target = rewards_mini[idx]
-    if(FALSE){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
+    #if(FALSE){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
     targets[idx] = target
     
   }
   inputs=as.data.frame(state_mat_mini)
   inputs$actions=actions_mini
   inputs$actions2=actions_mini^2
+  inputs$targets=targets
   #q.fit = nnet::nnet(targets~(.)+(.)*actions, data=scale(inputs), size=nnet_size)
   #pca.obj = stats::prcomp(inputs)
-  q.fit = caret::pcaNNet(targets~(.)*actions, data=inputs, size=30,linout=T, scale=T, maxit=50000)
+  stopifnot(!is.null(q.fit$weights))
+  
+  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6), threshold = 900000,
+                    stepmax = 3, rep = 1, startweights = q.fit$weights,
+                    learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
+                                                                          plus = 1.2), learningrate = NULL, lifesign = "none",
+                    lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
+                    act.fct = 'tanh', linear.output = TRUE, exclude = NULL,
+                    constant.weights = NULL, likelihood = FALSE)
   
   q.fit
 }

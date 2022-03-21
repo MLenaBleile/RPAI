@@ -3,14 +3,14 @@ source("data_generation_fncs.R")
 source("env_fncs.R")
 
 set.seed(1998)
-max_epochs=5000
+max_epochs=9000
 test_num = 500
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
 total_time=100
 num_pulses=4
 num_free_pulses=num_pulses-1
-state_size =  12
+state_size =  total_time+15
 bellmann_error = rep(NA, max_epochs)
 waitime_vec=rep(10, num_free_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
@@ -21,9 +21,9 @@ actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)
 eps=1
 eps.vec=c(eps)
-eps_decay=.9995
+eps_decay=.999
 epsilon_min=.001
-minibatch_size=500
+minibatch_size=100
 burn_in = 1000
 epoch=1
 
@@ -40,8 +40,8 @@ random.init$actions=sample(potential_actions,nrow(state_mat), replace=T)
 random.init$actions2 = random.init$actions^2
 
 #q.fit = lm(rnorm(nrow(state_mat))~(.)+(.)*actions+actions:actions, data=random.init)
-
-q.fit = caret::pcaNNet(rnorm(nrow(state_mat))~(.), data=random.init, size=5)
+library(neuralnet)
+q.fit = neuralnet(formula = V1~(.) , data=random.init, hidden = c(10,6,4), threshold = 10000,stepmax = 2, rep = 2)
 israndom=rep(T, max_epochs)
 while(epoch < max_epochs){
 
@@ -74,8 +74,8 @@ while(epoch < max_epochs){
     }
     nextstate_mat[epoch,] = one.next.state
     
-      if(epoch>=burn_in & (epoch%%minibatch_size==0)){
-        minibatch_idx = 1:epoch
+      if(epoch>=burn_in & done){
+        minibatch_idx = sample(1:epoch, minibatch_size)
         state_mat_mini = state_mat[minibatch_idx,]
         nextstate_mat_mini=nextstate_mat[minibatch_idx,]
         actions_mini = actions[minibatch_idx]
@@ -86,11 +86,11 @@ while(epoch < max_epochs){
         
         q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini)
         
-        
+        if(eps>epsilon_min){eps = eps*eps_decay}
         
       }
-    active.eps.decay = eps_decay*(epoch>=burn_in) + 1*(epoch<burn_in)
-    if(eps>epsilon_min){eps = eps*active.eps.decay}
+    #active.eps.decay = eps_decay*(epoch>=burn_in) + 1*(epoch<burn_in)
+    
     
     eps.vec=c(eps.vec, eps)
     epoch = epoch+1
@@ -99,5 +99,5 @@ while(epoch < max_epochs){
   }
 }
 
-  minibatch_idx = 1:5000
-  q.fit = replay(q.fit,state_mat[minibatch_idx,],actions[minibatch_idx],nextstate_mat[minibatch_idx,], rewards[minibatch_idx], dones[minibatch_idx])
+ # minibatch_idx = 1:5000
+#  q.fit = replay(q.fit,state_mat[minibatch_idx,],actions[minibatch_idx],nextstate_mat[minibatch_idx,], rewards[minibatch_idx], dones[minibatch_idx])

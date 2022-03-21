@@ -51,16 +51,24 @@ replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mi
   targets=rep(NA, minisize)
   for(idx in 1:minisize){
     target = rewards_mini[idx]
-    if(FALSE){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
+    #if(FALSE){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
     targets[idx] = target
     
   }
   inputs=as.data.frame(state_mat_mini)
   inputs$actions=actions_mini
   inputs$actions2=actions_mini^2
+  inputs$targets=targets
   #q.fit = nnet::nnet(targets~(.)+(.)*actions, data=scale(inputs), size=nnet_size)
   #pca.obj = stats::prcomp(inputs)
-  q.fit = caret::pcaNNet(targets~(.), data=inputs, size=15,linout=T, scale=T, maxit=50000)
+  
+  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6), threshold = 100000,
+                    stepmax = 1, rep = 1, startweights = q.fit$weights,
+                    learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
+                                                                          plus = 1.2), learningrate = NULL, lifesign = "none",
+                    lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
+                    act.fct = "logistic", linear.output = TRUE, exclude = NULL,
+                    constant.weights = NULL, likelihood = FALSE)
   
   q.fit
 }

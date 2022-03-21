@@ -51,7 +51,7 @@ agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
 reference_days=c(8)
 
 agent.outcome.vec=rep(NA, 100)
-refdays = c(10,14,20)
+refdays = c(10,14,25)
 ref.outcome.mat = matrix(NA, nrow=num_mice, ncol=length(refdays)+1)
 references = c(paste("day", refdays),"random")
 colnames(ref.outcome.mat) = references
@@ -77,7 +77,7 @@ for(mouse in 1:100){
   }
   for(ref.idx in 1:length(refdays)){
     ref = refdays[ref.idx]
-  one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
+  one.reference = generate_one(cumsum(rep(ref, num_free_pulses))+15, parameter_vec, maxtime = seqlength)
   ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
   one.random = sample(potential_actions,num_free_pulses, replace=T)

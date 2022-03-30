@@ -25,6 +25,7 @@ sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, wait
   ss2=summary(fit2)
   out.seq=log(tail(one.sequence,20))
   out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared,ss2$coefficients[,1:2],ss2$r.squared)
+  out=one.sequence
   out
 }
 

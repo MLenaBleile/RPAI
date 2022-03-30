@@ -4,7 +4,7 @@ source("env_fncs.R")
 
 
 set.seed(1998)
-max_epochs=2082
+max_epochs=2081
 test_num=500
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
@@ -12,6 +12,7 @@ total_time=120
 num_pulses=5
 num_free_pulses=num_pulses-1
 state_size = total_time+11+num_pulses
+#state_size = total_time+num_pulses
 #state_size=32
 
 waitime_vec=rep(10, num_free_pulses)
@@ -42,10 +43,11 @@ refit=T
 random.init = as.data.frame(matrix(rnorm(length(state_mat)), nrow=nrow(state_mat), ncol=state_size))
 random.init$actions=sample(potential_actions,nrow(state_mat), replace=T)
 random.init$actions2 = random.init$actions^2
+random.init$targets = rnorm(nrow(random.init))
 
 #q.fit = lm(rnorm(nrow(state_mat))~(.)+(.)*actions+actions:actions, data=random.init)
 #library(neuralnet)
-q.fit = neuralnet::neuralnet(formula = V1~(.) , data=random.init, hidden = c(10,6), threshold = 10000,stepmax = 2, rep = 2)
+q.fit = neuralnet::neuralnet(formula = targets~(.) , data=random.init, hidden = c(10,6), threshold = 10000,stepmax = 2, rep = 2)
 israndom=rep(T, max_epochs)
 
 while(epoch < max_epochs){

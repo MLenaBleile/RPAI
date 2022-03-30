@@ -1,4 +1,4 @@
-test_indices=1:100
+test_indices=1:test_num
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
 data_mat = matrix(NA, ncol=20, nrow=num_mice)

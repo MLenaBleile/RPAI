@@ -1,4 +1,4 @@
-  setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-working")
+  setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-3param-v4")
   source("data_generation_fncs.R")
   source("env_fncs.R")
   
@@ -23,7 +23,7 @@
   eps_decay=.9995
   epsilon_min=.1
   minibatch_size=500
-  burn_in=1000
+  burn_in=500
   epoch=1
   
   

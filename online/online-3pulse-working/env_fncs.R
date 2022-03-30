@@ -19,8 +19,8 @@ sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, wait
   
   fit=lm(log(one.sequence)~timevec*dose_vec+dose_vec:pd1_vec)
   ss=summary(fit)
-  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared, out, length(one.sequence))
-  out
+  #out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared, out, length(one.sequence))
+  out = c(out, length(one.sequence))
 }
 
 get_max = function(q.fit, one.state, potential_actions){

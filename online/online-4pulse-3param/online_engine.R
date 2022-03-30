@@ -4,7 +4,7 @@ source("env_fncs.R")
 
 set.seed(1998)
 max_epochs=5108
-test_num = 500
+test_num = 100
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
 total_time=100

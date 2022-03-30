@@ -2,9 +2,9 @@ setwd("~/Documents/Dissertation/RPAI/online/online-4pulse-3param")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 
-set.seed(1998)
+set.seed(1990)
 max_epochs=5108
-test_num = 500
+test_num = 100
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
 total_time=100

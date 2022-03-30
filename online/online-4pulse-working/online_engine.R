@@ -3,14 +3,15 @@ source("data_generation_fncs.R")
 source("env_fncs.R")
 
 set.seed(1998)
-max_epochs=9000
-test_num = 500
+max_epochs=7000
+test_num = 100
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
 total_time=100
 num_pulses=4
 num_free_pulses=num_pulses-1
 state_size =  total_time+15
+#state_size=104
 bellmann_error = rep(NA, max_epochs)
 waitime_vec=rep(10, num_free_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
@@ -23,8 +24,8 @@ eps=1
 eps.vec=c(eps)
 eps_decay=.999
 epsilon_min=.001
-minibatch_size=100
-burn_in = 1000
+minibatch_size=64
+burn_in = 64
 epoch=1
 
 
@@ -47,7 +48,7 @@ while(epoch < max_epochs){
 
   action.vec=c()
   current.time=15-2+waitime_vec[1]
-  parameter_vec=parameter_mat[mouse+101,]
+  parameter_vec=parameter_mat[mouse+test_num+1,]
   one.sequence = generate_one(radiation_days=action.vec,parameter_vec=parameter_vec,maxtime = current.time)
   for(pulse in 1:(num_free_pulses)){
     one.state = sequence_to_state(one.sequence, action.vec, done, num_free_pulses=num_free_pulses, total_time=total_time)
@@ -69,9 +70,9 @@ while(epoch < max_epochs){
     one.next.state = sequence_to_state(one.sequence,action.vec,done, num_free_pulses=num_free_pulses, total_time=total_time)
     one.reward = -(log(one.next.sequence[length(one.next.sequence)]) +16)/6
     rewards = c(rewards, one.reward)
-    if(done){
-      rewards[1:(epoch) & !(dones[1:epoch])] = rewards[1:(epoch) & dones[1:epoch]]
-    }
+    # if(done){
+    #   rewards[1:(epoch) & !(dones[1:epoch])] = rewards[1:(epoch) & dones[1:epoch]]
+    # }
     nextstate_mat[epoch,] = one.next.state
     
       if(epoch>=burn_in & done){
@@ -82,7 +83,7 @@ while(epoch < max_epochs){
         rewards_mini = rewards[minibatch_idx]
         
         dones_mini = dones[minibatch_idx]
-        #rewards_mini[dones_mini==0] = rep(rewards_mini[dones_mini==1], each=num_free_pulses-1)
+        #rewards_mini[dones_mini==0] = 0
         
         q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini)
         
@@ -99,5 +100,10 @@ while(epoch < max_epochs){
   }
 }
 
- # minibatch_idx = 1:5000
-#  q.fit = replay(q.fit,state_mat[minibatch_idx,],actions[minibatch_idx],nextstate_mat[minibatch_idx,], rewards[minibatch_idx], dones[minibatch_idx])
+ minibatch_idx = 1:(max_epochs-1)
+ inputs= as.data.frame(state_mat[minibatch_idx,])
+ inputs$actions=actions[minibatch_idx]
+ inputs$actions2=actions[minibatch_idx]^2
+ inputs$targett=rewards[minibatch_idx]
+q.fit = neuralnet::neuralnet(formula = targett~.,stepmax=10000,thresh=.05,rep=5,data=inputs, hidden = c(10,6,4), lifesign='full')
+  

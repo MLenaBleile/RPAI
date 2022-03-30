@@ -1,34 +1,4 @@
-setwd("~/Documents/Dissertation/RPAI/online/online-4pulse-3param")
-source("data_generation_fncs.R")
-source("env_fncs.R")
-
-set.seed(1998)
-max_epochs=9000
-test_num = 500
-parameter_mat = make_parameter_mat(max_epochs+test_num)
-
-total_time=100
-num_pulses=4
-num_free_pulses=num_pulses-1
-state_size =  total_time+15
-bellmann_error = rep(NA, max_epochs)
-waitime_vec=rep(10, num_free_pulses)
-state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
-nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-potential_actions = 1:15
-action_size=length(potential_actions)
-actions = rep(NA, max_epochs)
-dones = rep(NA, max_epochs)
-eps=1
-eps.vec=c(eps)
-eps_decay=.999
-epsilon_min=.001
-minibatch_size=100
-burn_in = 1000
-
-q.fit=readRDS("model.rds")
-
-test_indices=1:test_num
+test_indices=1:100
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
 data_mat = matrix(NA, ncol=20, nrow=num_mice)
@@ -41,7 +11,7 @@ agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
 reference_days=c(8)
 
 agent.outcome.vec=rep(NA, num_mice)
-refdays = c(10,14,25)
+refdays = c(10,14,20)
 ref.outcome.mat = matrix(NA, nrow=num_mice, ncol=length(refdays)+1)
 effect.sizes = rep(NA, ncol(ref.outcome.mat))
 references = c(paste("day", refdays), "random")
@@ -94,6 +64,6 @@ for(ref.idx in 1:(ncol(ref.outcome.mat))){
   print(length(delta[delta<0])/100)
   print(sum(delta2<0)/100)
 }
-legend("topleft", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": d="), pch=16, col=colors)
+legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": d="), pch=16, col=colors)
 abline(v=0, lty=2)
 mean(-agent.outcome.vec+ref.outcome.mat[,1])

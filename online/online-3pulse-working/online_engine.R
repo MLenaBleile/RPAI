@@ -1,15 +1,15 @@
-  setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-3param-v4")
+  setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-working")
   source("data_generation_fncs.R")
   source("env_fncs.R")
   
   set.seed(1998)
   max_epochs=5000
-  parameter_mat = make_parameter_mat(max_epochs+100)
+  parameter_mat = make_parameter_mat(max_epochs+500)
   
   total_time=60
   num_pulses=3
   num_free_pulses=num_pulses-1
-  state_size = 74
+  state_size = 63
   bellmann_error = rep(NA, max_epochs)
   waitime_vec=rep(8, num_pulses)
   state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
@@ -35,16 +35,17 @@
   random.init = as.data.frame(matrix(rnorm(length(state_mat)), nrow=nrow(state_mat), ncol=state_size))
   random.init$actions=sample(potential_actions,nrow(state_mat), replace=T)
   random.init$actions2 = random.init$actions^2
+  random.init$targets = rnorm(nrow(random.init))
   
   #q.fit = lm(rnorm(nrow(state_mat))~(.)+(.)*actions+actions:actions, data=random.init)
   library(neuralnet)
-  q.fit = neuralnet(formula = V1~(.) , data=random.init, hidden = c(10,6), threshold = 10000,stepmax = 2, rep = 2)
+  q.fit = neuralnet(formula = targets~(.) , data=random.init, hidden = c(10,6), threshold = 10000,stepmax = 2, rep = 2)
   israndom=rep(T, max_epochs)
   while(epoch < max_epochs){
     mouse=mouse+1
     action.vec=c()
     current.time=15-2+waitime_vec[1]
-    parameter_vec=parameter_mat[mouse+101,]
+    parameter_vec=parameter_mat[mouse+501,]
     one.sequence = generate_one(radiation_days=action.vec,parameter_vec=parameter_vec,maxtime = current.time)
     for(pulse in 1:(num_free_pulses)){
       one.state = sequence_to_state(one.sequence, action.vec, done, num_free_pulses=num_free_pulses, total_time=total_time)

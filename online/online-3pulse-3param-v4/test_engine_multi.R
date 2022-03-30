@@ -63,7 +63,7 @@ for(mouse in test_indices){
   one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
   ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
-  one.random = sample(1:10+waitime_vec[length(action.vec)],2, replace=T)
+  one.random = sample(1:12+waitime_vec[length(action.vec)],2, replace=T)
   ref.outcome.mat[mouse,length(refdays)+1]= log(generate_one(cumsum(one.random)+15, parameter_vec, maxtime = seqlength))[seqlength]
   agent.action.mat[mouse,]=action.vec
   agent.outcome.vec[mouse] = log(one.sequence[seqlength])

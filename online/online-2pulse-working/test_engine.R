@@ -1,15 +1,15 @@
-test_indices=1:500
-num_mice = length(test_indices)
-optimal_actions=rep(NA, num_mice)
-data_mat = matrix(NA, ncol=20, nrow=num_mice)
-true.mins = rep(NA, num_mice)
-agent.outcomes=rep(NA, num_mice)
+test_indices=1:test_num
+
+optimal_actions=rep(NA, test_num)
+data_mat = matrix(NA, ncol=20, nrow=test_num)
+true.mins = rep(NA, test_num)
+agent.outcomes=rep(NA, test_num)
 reference_days=c(10,14,20)
-reference.outcomes=matrix(NA, nrow=num_mice, ncol=length(reference_days))
+reference.outcomes=matrix(NA, nrow=test_num, ncol=length(reference_days))
 selected_actions=c()
 
 reference_day = 8
-for(mouse in 1:num_mice){
+for(mouse in 1:test_num){
   parameter_vec= parameter_mat[mouse,]
   one.reference = generate_one_counterfactualset(parameter_mat[mouse,],total_days = total_days+5, wait_time = waitime_vec[1], potential_actions = 1:15)
   one.optima= which.min(one.reference[,total_days])+waitime_vec[1]
@@ -47,8 +47,8 @@ for(refday.idx in 1:length(reference_days)){
   cat("effect size: ", cohen)
   print(100*(length(test_indices)-length(one.delta[one.delta<0]))/length(test_indices))
 }
-deltarandom = abs(optimal_actions-sample(7:17, num_mice, replace=T))-deltamodel
-lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel, adjust=adj_factor), col="purple")
+deltarandom = abs(optimal_actions-sample(7:17, test_num, replace=T))-deltamodel
+lines(density(abs(optimal_actions-sample(7:17, test_num, replace=T)) - deltamodel, adjust=adj_factor), col="purple")
 legend("topleft", legend=c(paste("day", reference_days),"random"), pch=16, col=colors)
 abline(v=0, lty=2)
 effect.sizes = rep(NA, 4)
@@ -67,9 +67,9 @@ for(refday.idx in 1:3){
   effect.sizes[refday.idx] = cohen
   #cat(deltamodel[deltamodel>deltaref])
 }
-delta.diff.random = abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel
+delta.diff.random = abs(optimal_actions-sample(7:17, test_num, replace=T)) - deltamodel
 effect.sizes[4] = mean(delta.diff.random)/sd(delta.diff.random)
-lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel), col="purple")
+lines(density(abs(optimal_actions-sample(7:17, test_num, replace=T)) - deltamodel), col="purple")
 legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": d="), pch=16, col=c(colors, "purple"))
 abline(v=0, lty=2)
 

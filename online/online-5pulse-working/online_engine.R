@@ -4,7 +4,7 @@ source("env_fncs.R")
 
 
 set.seed(1998)
-max_epochs=2081
+max_epochs=2500
 test_num=500
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
@@ -18,7 +18,7 @@ state_size = total_time+11+num_pulses
 waitime_vec=rep(10, num_free_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
 nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-potential_actions = 1:15
+potential_actions = 1:13
 action_size=length(potential_actions)
 
 
@@ -27,10 +27,10 @@ actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)
 eps=1
 eps.vec=c(eps)
-eps_decay=.9999
-burn_in=100
+eps_decay=.996
+burn_in=300
 epsilon_min=.001
-minibatch_size=100
+minibatch_size=300
 epoch=1
 
 
@@ -91,7 +91,7 @@ while(epoch < max_epochs){
         dones_mini = dones[minibatch_idx]
         #rewards_mini[dones_mini==0] = rep(rewards_mini[dones_mini==1], each=num_free_pulses-1)
         
-        q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini)
+        q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=3)
         
         if(eps>epsilon_min){eps = eps*eps_decay}
         
@@ -103,8 +103,15 @@ while(epoch < max_epochs){
     one.sequence=one.next.sequence
   }
 }
+minibatch_idx = 1:(epoch-1)
+state_mat_mini = state_mat[minibatch_idx,]
+nextstate_mat_mini=nextstate_mat[minibatch_idx,]
+actions_mini = actions[minibatch_idx]
+rewards_mini = rewards[minibatch_idx]
 
-#minibatch_idx = 1:max_epochs
-#q.fit = replay(q.fit,state_mat[minibatch_idx,],actions[minibatch_idx],nextstate_mat[minibatch_idx,], rewards[minibatch_idx], dones[minibatch_idx])
+dones_mini = dones[minibatch_idx]
+
+
+q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=3,stepmax=1500,threshold = .025)
 
 

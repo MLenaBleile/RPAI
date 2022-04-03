@@ -19,8 +19,8 @@ sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, wait
   
   fit=lm(log(one.sequence)~timevec*dose_vec+dose_vec:pd1_vec)
   ss=summary(fit)
-  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared, out, length(one.sequence))
-  #out = c(out, length(one.sequence))
+  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared, out,length(one.sequence))
+  #out = c(out,length(one.sequence))
   out
 }
 
@@ -47,16 +47,12 @@ get_action = function(q.fit,one.state, potential_actions){
   best_action
 }
 
-sigmoid =function(x)
-{
-  (1+exp(-x))^(-1)
-}
-replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,nnet_size=5,reps=1,threshold=900000, stepmax=3,gam=.99, potential_actions=1:10){
+replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,nnet_size=5, gam=.9, potential_actions=1:10){
   minisize=nrow(state_mat_mini)
   targets=rep(NA, minisize)
   for(idx in 1:minisize){
     target = rewards_mini[idx]
-    #if(FALSE){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
+    if(done){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
     targets[idx] = target
     
   }
@@ -66,14 +62,13 @@ replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mi
   inputs$targets=targets
   #q.fit = nnet::nnet(targets~(.)+(.)*actions, data=scale(inputs), size=nnet_size)
   #pca.obj = stats::prcomp(inputs)
-  stopifnot(!is.null(q.fit$weights))
-  
-  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6), threshold = threshold,
-                    stepmax = stepmax, rep = reps, startweights = q.fit$weights,
+
+  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6,4), threshold = 100000,
+                    stepmax = 3, rep = 1, startweights = q.fit$weights,
                     learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
-                                                                          plus = 1.2), learningrate = NULL, lifesign = "full",
+                                                                          plus = 1.2), learningrate = NULL, lifesign = "none",
                     lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
-                    act.fct = 'logistic', linear.output = TRUE, exclude = NULL,
+                    act.fct = "logistic", linear.output = TRUE, exclude = NULL,
                     constant.weights = NULL, likelihood = FALSE)
   
   q.fit

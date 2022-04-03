@@ -1,3 +1,27 @@
+setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-3param-v7")
+source("data_generation_fncs.R")
+source("env_fncs.R")
+
+set.seed(1998)
+max_epochs=5000
+test_num=500
+parameter_mat = make_parameter_mat(max_epochs+test_num)
+
+total_time=60
+num_pulses=3
+num_free_pulses=num_pulses-1
+state_size = total_time+11+num_pulses
+#state_size = total_time+num_pulses
+state_size=9+num_pulses
+
+waitime_vec=rep(8, num_free_pulses)
+state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
+nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
+potential_actions = 1:12
+action_size=length(potential_actions)
+
+q.fit=readRDS("model.rds")
+
 test_indices=1:500
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
@@ -19,13 +43,13 @@ colnames(ref.outcome.mat) = c(paste("day", refdays), "random")
 for(mouse in 1:500){
   parameter_vec=parameter_mat[mouse,]
   action.vec=c()
-  one.sequence = generate_one(action.vec, parameter_vec, maxtime=21)
+  one.sequence = generate_one(action.vec, parameter_vec, maxtime=20)
   while(length(action.vec)<num_free_pulses){
     isdone=(length(action.vec)==(num_free_pulses-1))
     one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = action.vec, done=isdone, num_free_pulses = 2)
-    one.action = get_action(q.fit,one.state, potential_actions = potential_actions)+waitime_vec[length(action.vec)+1]
+    one.action = get_action(q.fit,one.state, potential_actions = 1:10)+waitime_vec[length(action.vec)+1]
     action.vec=c(action.vec, one.action)
-    seqlength = (21+ sum(action.vec))*(1-isdone)+60*isdone
+    seqlength = (20+sum(action.vec))*(1-isdone)+60*isdone
     one.sequence = generate_one(cumsum(action.vec)+15, parameter_vec, maxtime = seqlength)
   }
   for(ref.idx in 1:length(refdays)){
@@ -33,7 +57,7 @@ for(mouse in 1:500){
     one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
     ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
-  one.random = sample(1:11+waitime_vec[length(action.vec)],2, replace=T)
+  one.random = sample(1:10+waitime_vec[length(action.vec)],2, replace=T)
   ref.outcome.mat[mouse,length(refdays)+1]= log(generate_one(cumsum(one.random)+15, parameter_vec, maxtime = seqlength))[seqlength]
   agent.action.mat[mouse,]=action.vec
   agent.outcome.vec[mouse] = log(one.sequence[seqlength])

@@ -11,7 +11,7 @@ agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
 reference_days=c(8)
 
 agent.outcome.vec=rep(NA, 500)
-refdays = c(10,14,20)
+refdays = c(11,14,20)
 ref.outcome.mat = matrix(NA, nrow=num_mice, ncol=length(refdays)+1)
 references=c(paste("day", refdays), "random")
 colnames(ref.outcome.mat) = c(paste("day", refdays), "random")
@@ -19,21 +19,21 @@ colnames(ref.outcome.mat) = c(paste("day", refdays), "random")
 for(mouse in 1:500){
   parameter_vec=parameter_mat[mouse,]
   action.vec=c()
-  one.sequence = generate_one(action.vec, parameter_vec, maxtime=21)
+  one.sequence = generate_one(action.vec, parameter_vec, maxtime=20)
   while(length(action.vec)<num_free_pulses){
-    isdone=(length(action.vec)==(num_free_pulses-1))
-    one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = action.vec, done=isdone, num_free_pulses = 2)
-    one.action = get_action(q.fit,one.state, potential_actions = potential_actions)+waitime_vec[length(action.vec)+1]
-    action.vec=c(action.vec, one.action)
-    seqlength = (21+ sum(action.vec))*(1-isdone)+60*isdone
-    one.sequence = generate_one(cumsum(action.vec)+15, parameter_vec, maxtime = seqlength)
+  isdone=(length(action.vec)==(num_free_pulses-1))
+  one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = action.vec, done=isdone, num_free_pulses = 2)
+  one.action = get_action(q.fit,one.state, potential_actions = 1:10)+waitime_vec[length(action.vec)+1]
+  action.vec=c(action.vec, one.action)
+  seqlength = (20+sum(action.vec))*(1-isdone)+60*isdone
+  one.sequence = generate_one(cumsum(action.vec)+15, parameter_vec, maxtime = seqlength)
   }
   for(ref.idx in 1:length(refdays)){
     ref = refdays[ref.idx]
-    one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
-    ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
+  one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
+  ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
-  one.random = sample(1:11+waitime_vec[length(action.vec)],2, replace=T)
+  one.random = sample(1:10+waitime_vec[length(action.vec)],2, replace=T)
   ref.outcome.mat[mouse,length(refdays)+1]= log(generate_one(cumsum(one.random)+15, parameter_vec, maxtime = seqlength))[seqlength]
   agent.action.mat[mouse,]=action.vec
   agent.outcome.vec[mouse] = log(one.sequence[seqlength])

@@ -56,13 +56,13 @@ effect.sizes = rep(NA, 4)
 deltamodel = agent.outcomes-true.mins
 delta15 =reference.outcomes[,1]-true.mins
 colors = c("red","blue","orange","purple")
-plot(density(delta15-deltamodel), xlab="fixed personalization loss - agent personalization loss",type="n",xlim=c(-.2,.5), main="2 pulse performance", col="red", ylim=c(0,60))
+plot(density(delta15-deltamodel), xlab="fixed personalization loss - agent personalization loss",type="n",xlim=c(-.2,.2), main="2 pulse performance", col="red", ylim=c(0,60))
 for(refday.idx in 1:3){
   deltaref = reference.outcomes[,refday.idx]-true.mins
   lines(density(deltaref - deltamodel), col=colors[refday.idx])
   test=t.test(deltaref-deltamodel)
   print(test)
-  cohen = mean(deltaref-deltamodel)/sd(deltaref-deltamodel)
+  cohen = mean(deltaref-deltamodel)
   cat("effect size: ", cohen)
   cat("minimum:",min(deltaref-deltamodel))
   effect.sizes[refday.idx] = cohen

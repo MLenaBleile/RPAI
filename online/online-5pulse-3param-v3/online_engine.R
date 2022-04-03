@@ -1,20 +1,21 @@
-setwd("~/Documents/Dissertation/RPAI/online/online-4pulse-working")
+setwd("~/Documents/Dissertation/RPAI/online/online-5pulse-3param-v3")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 
+
 set.seed(1998)
-max_epochs=3200
+max_epochs=2500
 test_num=500
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
 total_time=120
-num_pulses=4
+num_pulses=5
 num_free_pulses=num_pulses-1
 state_size = total_time+11+num_pulses
 #state_size = total_time+num_pulses
 #state_size=32
 
-waitime_vec=rep(8, num_free_pulses)
+waitime_vec=rep(10, num_free_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
 nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
 potential_actions = 1:13
@@ -26,36 +27,37 @@ actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)
 eps=1
 eps.vec=c(eps)
-eps_decay=.999
-burn_in=100
+eps_decay=.996
+burn_in=300
 epsilon_min=.001
-minibatch_size=100
+minibatch_size=300
 epoch=1
-
-
 
 
 rewards = c()
 mouse=1
 epoch=1
 mouse2=0
+refit=T 
 
 random.init = as.data.frame(matrix(rnorm(length(state_mat)), nrow=nrow(state_mat), ncol=state_size))
 random.init$actions=sample(potential_actions,nrow(state_mat), replace=T)
 random.init$actions2 = random.init$actions^2
+random.init$targets = rnorm(nrow(random.init))
 
 #q.fit = lm(rnorm(nrow(state_mat))~(.)+(.)*actions+actions:actions, data=random.init)
-library(neuralnet)
-q.fit = neuralnet(formula = V1~(.) , data=random.init, hidden = c(10,6,4), threshold = 10000,stepmax = 2, rep = 2)
+#library(neuralnet)
+q.fit = neuralnet::neuralnet(formula = targets~(.) , data=random.init, hidden = c(10,6), threshold = 10000,stepmax = 2, rep = 2)
 israndom=rep(T, max_epochs)
+
 while(epoch < max_epochs){
 
   action.vec=c()
   current.time=15-2+waitime_vec[1]
-  parameter_vec=parameter_mat[mouse+test_num+1,]
+  parameter_vec=parameter_mat[mouse+1+test_num,]
   one.sequence = generate_one(radiation_days=action.vec,parameter_vec=parameter_vec,maxtime = current.time)
   for(pulse in 1:(num_free_pulses)){
-    one.state = sequence_to_state(one.sequence, action.vec, done, num_free_pulses=num_free_pulses, total_time=total_time)
+    one.state = sequence_to_state(one.sequence, action.vec, done, num_free_pulses=num_free_pulses, waitime_vec = waitime_vec, total_time=total_time)
     done = (pulse==num_free_pulses)
     dones[epoch]=done
     state_mat[epoch,]=one.state
@@ -72,14 +74,14 @@ while(epoch < max_epochs){
     }
     one.next.sequence = generate_one(radiation_days, parameter_vec = parameter_vec, maxtime=current.time)
     one.next.state = sequence_to_state(one.sequence,action.vec,done, num_free_pulses=num_free_pulses, total_time=total_time)
-    one.reward = -(log(one.next.sequence[length(one.next.sequence)]) +16)/6
+    one.reward = -log(one.next.sequence[length(one.next.sequence)])/9
     rewards = c(rewards, one.reward)
-    # if(done){
-    #   rewards[1:(epoch) & !(dones[1:epoch])] = rewards[1:(epoch) & dones[1:epoch]]
-    # }
     nextstate_mat[epoch,] = one.next.state
+    if(done){
+      rewards[1:(epoch) & !(dones[1:epoch])] = rewards[1:(epoch) & dones[1:epoch]]
+    }
     
-      if(epoch>=burn_in & done){
+      if(epoch>=burn_in & (done)){
         minibatch_idx = sample(1:epoch, minibatch_size)
         state_mat_mini = state_mat[minibatch_idx,]
         nextstate_mat_mini=nextstate_mat[minibatch_idx,]
@@ -87,27 +89,29 @@ while(epoch < max_epochs){
         rewards_mini = rewards[minibatch_idx]
         
         dones_mini = dones[minibatch_idx]
-        #rewards_mini[dones_mini==0] = 0
+        #rewards_mini[dones_mini==0] = rep(rewards_mini[dones_mini==1], each=num_free_pulses-1)
         
-        q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini)
+        q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=3)
         
         if(eps>epsilon_min){eps = eps*eps_decay}
         
       }
-    #active.eps.decay = eps_decay*(epoch>=burn_in) + 1*(epoch<burn_in)
-    
-    
+
     eps.vec=c(eps.vec, eps)
     epoch = epoch+1
     cat("\n epoch:", epoch, "reward:",one.reward)
     one.sequence=one.next.sequence
   }
 }
+minibatch_idx = 1:(epoch-1)
+state_mat_mini = state_mat[minibatch_idx,]
+nextstate_mat_mini=nextstate_mat[minibatch_idx,]
+actions_mini = actions[minibatch_idx]
+rewards_mini = rewards[minibatch_idx]
 
- minibatch_idx = 1:(max_epochs-1)
- inputs= as.data.frame(state_mat[minibatch_idx,])
- inputs$actions=actions[minibatch_idx]
- inputs$actions2=actions[minibatch_idx]^2
- inputs$targett=rewards[minibatch_idx]
-q.fit = neuralnet::neuralnet(formula = targett~.,stepmax=10000,thresh=.5,rep=5,data=inputs, hidden = c(10,6,4), lifesign='full')
-  
+dones_mini = dones[minibatch_idx]
+
+
+q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=3,stepmax=1500,threshold = .025)
+
+

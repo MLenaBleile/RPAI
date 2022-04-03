@@ -97,8 +97,8 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
   TTn_vec[1]<-para_set['TT0','best']
   BTn_vec[1]<-para_set['BT0','best']
   dose_vec=rep(0, maxtime)
-  dose_vec[15] = 1
-  dose_vec[radiation_days] = 1
+  dose_vec[15] = 10
+  dose_vec[radiation_days] = 10
 
   pd1_vec = generate_pd1_stacked(radiation_days, totaltime=maxtime)
 

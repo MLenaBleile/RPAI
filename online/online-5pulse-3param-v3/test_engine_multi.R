@@ -1,3 +1,46 @@
+setwd("~/Documents/Dissertation/RPAI/online/online-5pulse-3param-v3")
+source("data_generation_fncs.R")
+source("env_fncs.R")
+
+
+set.seed(1998)
+max_epochs=2082
+test_num=500
+parameter_mat = make_parameter_mat(max_epochs+test_num)
+
+total_time=120
+num_pulses=5
+num_free_pulses=num_pulses-1
+state_size = total_time+11+num_pulses
+#state_size=32
+
+waitime_vec=rep(10, num_free_pulses)
+state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
+nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
+potential_actions = 1:15
+action_size=length(potential_actions)
+
+q.fit=readRDS()
+
+set.seed(1998)
+max_epochs=2082
+test_num=500
+parameter_mat = make_parameter_mat(max_epochs+test_num)
+
+total_time=120
+num_pulses=5
+num_free_pulses=num_pulses-1
+state_size = total_time+11+num_pulses
+#state_size=32
+
+waitime_vec=rep(10, num_free_pulses)
+state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
+nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
+potential_actions = 1:15
+action_size=length(potential_actions)
+
+q.fit=readRDS("model.rds")
+
 test_indices=1:test_num
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
@@ -11,7 +54,7 @@ agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
 reference_days=c(8)
 
 agent.outcome.vec=rep(NA, test_num)
-refdays = c(10,14,20)
+refdays = c(11,14,20)
 ref.outcome.mat = matrix(NA, nrow=num_mice, ncol=length(refdays)+1)
 references = c(paste("day", refdays),"random")
 colnames(ref.outcome.mat) = references
@@ -48,8 +91,8 @@ for(mouse in 1:test_num){
   
 }
 
-adj.val=2
-plot(density(-agent.outcome.vec+ref.outcome.mat[,'random'],adjust=adj.val),col="purple",xlim=c(-.2,.2),ylim=c(0,30),xlab="final ltv reference-final ltv agent", main="5 pulse performance")
+adj.val=1
+plot(density(-agent.outcome.vec+ref.outcome.mat[,'random'],adjust=adj.val),col="purple",xlab="final ltv reference-final ltv agent", main="5 pulse performance")
 colors= c("red","blue", "orange", "purple")
 for(ref.idx in 1:(ncol(ref.outcome.mat))){
   ref = refdays[ref.idx]
@@ -57,11 +100,11 @@ for(ref.idx in 1:(ncol(ref.outcome.mat))){
   print(t.test(ref.outcome.mat[,ref.idx] - agent.outcome.vec))
   delta = ref.outcome.mat[,ref.idx] - agent.outcome.vec
   delta2 = ref.outcome.mat[,ref.idx] - ref.outcome.mat[,4]
-  effect.sizes[[references[ref.idx]]] = mean(delta)
+  effect.sizes[[references[ref.idx]]] = mean(delta)/sd(delta)
   print(summary(delta))
   print(length(delta[delta<=0])/test_num)
   print(sum(delta2<0)/100)
 }
-legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": "), pch=16, col=colors)
+legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": d="), pch=16, col=colors)
 abline(v=0, lty=2)
 mean(-agent.outcome.vec+ref.outcome.mat[,1])

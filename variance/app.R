@@ -123,7 +123,7 @@ server <- function(input, output) {
         one.round.long$variable=one.round.long$variable
         Timee = as.numeric(unlist(strsplit(as.character(one.round.long$variable),"V")))
         one.round.long$Time=Timee[!is.na(Timee)]
-        epiDisplay::aggregate.plot(as.numeric(one.round.long$value),main="simulated data",by= as.numeric(one.round.long$Time), grouping=one.round.long$group, FUN='mean',error="se", ylim=c(0,3500),legend.site="topleft")
+        epiDisplay::aggregate.plot(as.numeric(one.round.long$value),main="simulated data",by= as.numeric(one.round.long$Time), grouping=one.round.long$group, FUN='mean',error="se", ylim=c(0,4000),legend.site="topleft")
         
         
     })
@@ -145,7 +145,7 @@ server <- function(input, output) {
         one.round.long = melt(data.table(one.round.small), id.vars = c("ID", "group"))
         Timee = as.numeric(unlist(strsplit(as.character(one.round.long$variable),"y")))
         one.round.long$Time=Timee[!is.na(Timee)]
-        epiDisplay::aggregate.plot(exp(one.round.long$value),by= one.round.long$Time,main="Real Data", grouping=one.round.long$group, FUN='mean', error="se",legent.site="topleft", ylim=c(0,3500))
+        epiDisplay::aggregate.plot(exp(one.round.long$value),by= one.round.long$Time,main="Real Data", grouping=one.round.long$group, FUN='mean', error="se",legent.site="topleft", ylim=c(0,4000))
     })
     # output$realPlot2 <- renderPlot({
     #     displaygroups = new_names[input$displaygroups2]

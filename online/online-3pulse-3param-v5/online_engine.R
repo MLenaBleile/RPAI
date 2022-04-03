@@ -3,33 +3,27 @@
   source("env_fncs.R")
   
   set.seed(1998)
-  max_epochs=3000
-  test_num=500
-  parameter_mat = make_parameter_mat(max_epochs+test_num)
+  max_epochs=1000
+  parameter_mat = make_parameter_mat(max_epochs+500)
   
   total_time=60
   num_pulses=3
   num_free_pulses=num_pulses-1
-  state_size = total_time+17+num_pulses
-  #state_size = total_time+num_pulses
-  #state_size=9+num_pulses
-  
-  waitime_vec=rep(9, num_free_pulses)
+  state_size = 12
+  bellmann_error = rep(NA, max_epochs)
+  waitime_vec=rep(8, num_pulses)
   state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
   nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-  potential_actions = 1:11
+  potential_actions = 1:12
   action_size=length(potential_actions)
-  
-  
-  bellmann_error = rep(NA, max_epochs)
   actions = rep(NA, max_epochs)
   dones = rep(NA, max_epochs)
   eps=1
   eps.vec=c(eps)
-  eps_decay=.999
-  burn_in=200
-  epsilon_min=.001
-  minibatch_size=200
+  eps_decay=.99
+  epsilon_min=.1
+  minibatch_size =100
+  burn_in=100
   epoch=1
   
   
@@ -88,7 +82,7 @@
           dones_mini = dones[minibatch_idx]
           
           
-          q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,reps=1, stepmax=3, threshold=1000)
+          q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,reps=3, stepmax=3, threshold=500)
           if(eps>epsilon_min){eps = eps*eps_decay}
           
         }
@@ -109,5 +103,5 @@
   dones_mini = dones[minibatch_idx]
   
   
-  q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,reps=5, stepmax=15000, threshold=.1)
+  q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,reps=3, stepmax=15000, threshold=.05)
   

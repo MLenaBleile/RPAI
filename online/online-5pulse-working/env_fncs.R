@@ -19,7 +19,7 @@ sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, wait
   
   fit=lm(log(one.sequence)~timevec*dose_vec+dose_vec:pd1_vec)
   ss=summary(fit)
-  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared, out, length(one.sequence))
+  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared,out, length(one.sequence))
   #out = c(out, length(one.sequence))
   out
 }
@@ -68,7 +68,7 @@ replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mi
   #pca.obj = stats::prcomp(inputs)
   stopifnot(!is.null(q.fit$weights))
   
-  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6), threshold = threshold,
+  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6,4), threshold = threshold,
                     stepmax = stepmax, rep = reps, startweights = q.fit$weights,
                     learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
                                                                           plus = 1.2), learningrate = NULL, lifesign = "full",

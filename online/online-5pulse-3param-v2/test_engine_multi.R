@@ -1,4 +1,4 @@
-setwd("~/Documents/Dissertation/RPAI/online/online-5pulse-3param-v2")
+setwd("~/RPAI/online/online-5pulse-3param-v2")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 
@@ -32,7 +32,7 @@ day15.outcomes=rep(NA, num_mice)
 selected_actions=c()
 
 agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
-reference_days=c(8)
+
 
 agent.outcome.vec=rep(NA, test_num)
 refdays = c(10,14,20)
@@ -73,7 +73,7 @@ for(mouse in 1:test_num){
 }
 
 adj.val=2
-plot(density(-agent.outcome.vec+ref.outcome.mat[,'random'],adjust=adj.val),xlim=c(-.2,1.5), ylim=c(0,15),col="purple",xlab="final ltv reference-final ltv agent", main="5 pulse performance")
+plot(density(-agent.outcome.vec+ref.outcome.mat[,'random'],adjust=adj.val),xlim=c(-.2,.5), ylim=c(0,25),col="purple",xlab="final ltv reference-final ltv agent", main="5 pulse performance")
 colors= c("red","blue", "orange", "purple")
 for(ref.idx in 1:(ncol(ref.outcome.mat))){
   ref = refdays[ref.idx]
@@ -86,6 +86,6 @@ for(ref.idx in 1:(ncol(ref.outcome.mat))){
   print(length(delta[delta<=0])/test_num)
   print(sum(delta2<0)/100)
 }
-legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": mean="), pch=16, col=colors)
+#legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": "), pch=16, col=colors)
 abline(v=0, lty=2)
 mean(-agent.outcome.vec+ref.outcome.mat[,1])

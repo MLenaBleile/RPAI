@@ -134,7 +134,7 @@ make_parameter_mat = function(num_mice){
   colnames(parameter_mat) = c("mu","rho","lambda","omega1","omega2","BT0","TT0","Tinit")
   
   #parameter_mat[,'lambda'] = rbeta(num_mice,shape1 = lambda*5, shape2 = (1-lambda)*5)
-  parameter_mat[,'lambda'] = truncnorm(num_mice, loc = lambda, scale=.1,upr=1, lwr=0)
+  parameter_mat[,'lambda'] = truncnorm(num_mice, loc = lambda, scale=.3,upr=1, lwr=0)
   #parameter_mat[,'rho'] = sample(c(0,rho), num_mice, replace=T)
   #parameter_mat[,"Tinit"] = runif(num_mice, min=1, max=3)
   #parameter_mat[,'BT0'] = truncnorm(num_mice, loc=BT0,scale=.001, lwr=0, upr=1)

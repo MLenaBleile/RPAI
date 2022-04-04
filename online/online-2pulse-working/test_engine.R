@@ -62,7 +62,7 @@ for(refday.idx in 1:3){
   lines(density(deltaref - deltamodel), col=colors[refday.idx])
   test=t.test(deltaref-deltamodel)
   print(test)
-  cohen = mean(deltaref-deltamodel)/sd(deltaref-deltamodel)
+  cohen = mean(deltaref-deltamodel)
   cat("effect size: ", cohen)
   cat("minimum:",min(deltaref-deltamodel))
   effect.sizes[refday.idx] = cohen
@@ -71,7 +71,7 @@ for(refday.idx in 1:3){
 delta.diff.random = abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel
 effect.sizes[4] = mean(delta.diff.random)/sd(delta.diff.random)
 lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel), col="purple")
-legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": mean ="), pch=16, col=c(colors, "purple"))
+legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": "), pch=16, col=c(colors, "purple"))
 abline(v=0, lty=2)
 
 table(selected_actions, optimal_actions)

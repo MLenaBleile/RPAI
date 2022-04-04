@@ -1,4 +1,4 @@
-setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-3param-v7")
+setwd("~/RPAI/online/online-3pulse-3param-v7")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 
@@ -57,7 +57,7 @@ for(mouse in 1:500){
     one.reference = generate_one(cumsum(c(ref,ref))+15, parameter_vec, maxtime = seqlength)
     ref.outcome.mat[mouse,ref.idx]=log(one.reference[seqlength])
   }
-  one.random = sample(1:10+waitime_vec[length(action.vec)],2, replace=T)
+  one.random = sample(potential_actions+waitime_vec[length(action.vec)],2, replace=T)
   ref.outcome.mat[mouse,length(refdays)+1]= log(generate_one(cumsum(one.random)+15, parameter_vec, maxtime = seqlength))[seqlength]
   agent.action.mat[mouse,]=action.vec
   agent.outcome.vec[mouse] = log(one.sequence[seqlength])
@@ -67,7 +67,7 @@ effect.sizes = rep(NA, ncol(ref.outcome.mat))
 names(effect.sizes) = references
 
 adj.val=2
-plot(density(-agent.outcome.vec+ref.outcome.mat[,1], adjust=adj.val), col="red", xlab="final ltv reference-final ltv agent",main="3 pulse performance", xlim=c(-.7,.7), ylim=c(0,15))
+plot(density(-agent.outcome.vec+ref.outcome.mat[,1], adjust=adj.val), col="red", xlab="final ltv reference-final ltv agent",main="3 pulse performance", xlim=c(-.2,.5), ylim=c(0,25))
 colors= c("red","blue", "orange", "purple")
 for(ref.idx in 1:ncol(ref.outcome.mat)){
   ref = refdays[ref.idx]
@@ -84,6 +84,6 @@ for(ref.idx in 1:ncol(ref.outcome.mat)){
   cat("proportion of times ", colnames(ref.outcome.mat)[ref.idx],"was better than random" )
   print(1-length(delta[delta2<=0])/100)
 }
-legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": d="), pch=16, col=colors)
+#legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": d="), pch=16, col=colors)
 abline(v=0, lty=2)
 mean(-agent.outcome.vec+ref.outcome.mat[,1])

@@ -1,3 +1,27 @@
+setwd("~/RPAI/online/online-4pulse-3param-v2")
+source("data_generation_fncs.R")
+source("env_fncs.R")
+
+set.seed(1998)
+max_epochs=3200
+test_num=500
+parameter_mat = make_parameter_mat(max_epochs+test_num)
+
+total_time=120
+num_pulses=4
+num_free_pulses=num_pulses-1
+state_size = total_time+11+num_pulses
+#state_size = total_time+num_pulses
+#state_size=32
+
+waitime_vec=rep(8, num_free_pulses)
+state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
+nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
+potential_actions = 1:13
+action_size=length(potential_actions)
+
+q.fit=readRDS("model.rds")
+
 test_indices=1:100
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
@@ -51,7 +75,7 @@ for(mouse in 1:num_mice){
 }
 
 adj.val=1
-plot(density(-agent.outcome.vec+ref.outcome.mat[,1],adjust=adj.val), xlim=c(-.5,.5),col="red",type="n",xlab="final ltv reference-final ltv agent", main="4 pulse performance")
+plot(density(-agent.outcome.vec+ref.outcome.mat[,1],adjust=adj.val), xlim=c(-.2,.5),ylim=c(0,25),col="red",type="n",xlab="final ltv reference-final ltv agent", main="4 pulse performance")
 colors= c("red","blue", "orange", "purple")
 for(ref.idx in 1:(ncol(ref.outcome.mat))){
   ref = refdays[ref.idx]
@@ -59,11 +83,11 @@ for(ref.idx in 1:(ncol(ref.outcome.mat))){
   print(t.test(ref.outcome.mat[,ref.idx] - agent.outcome.vec))
   delta = ref.outcome.mat[,ref.idx] - agent.outcome.vec
   delta2 = ref.outcome.mat[,ref.idx] - ref.outcome.mat[,4]
-  effect.sizes[[references[ref.idx]]] = mean(delta)/sd(delta)
+  effect.sizes[[references[ref.idx]]] = mean(delta)
   print(summary(delta))
   print(length(delta[delta<0])/100)
   print(sum(delta2<0)/100)
 }
-legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": d="), pch=16, col=colors)
+#legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": "), pch=16, col=colors)
 abline(v=0, lty=2)
 mean(-agent.outcome.vec+ref.outcome.mat[,1])

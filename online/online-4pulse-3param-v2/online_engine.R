@@ -1,4 +1,4 @@
-setwd("~/Documents/Dissertation/RPAI/online/online-4pulse-working")
+setwd("~/RPAI/online/online-4pulse-3param-v2")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 

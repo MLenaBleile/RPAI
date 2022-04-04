@@ -1,10 +1,10 @@
-setwd("~/Documents/Dissertation/RPAI/online/online-5pulse-working")
+setwd("~/RPAI/online/online-5pulse-working")
 source("data_generation_fncs.R")
 source("env_fncs.R")
-
+library(neuralnet)
 
 set.seed(1998)
-max_epochs=2500
+max_epochs=5000
 test_num=500
 parameter_mat = make_parameter_mat(max_epochs+test_num)
 
@@ -13,12 +13,12 @@ num_pulses=5
 num_free_pulses=num_pulses-1
 state_size = total_time+11+num_pulses
 #state_size = total_time+num_pulses
-#state_size=32
+#state_size=12
 
-waitime_vec=rep(10, num_free_pulses)
+waitime_vec=rep(9, num_free_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
 nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-potential_actions = 1:13
+potential_actions = 1:15
 action_size=length(potential_actions)
 
 
@@ -27,10 +27,10 @@ actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)
 eps=1
 eps.vec=c(eps)
-eps_decay=.996
-burn_in=300
+eps_decay=.998
+burn_in=150
 epsilon_min=.001
-minibatch_size=300
+minibatch_size=150
 epoch=1
 
 
@@ -91,7 +91,7 @@ while(epoch < max_epochs){
         dones_mini = dones[minibatch_idx]
         #rewards_mini[dones_mini==0] = rep(rewards_mini[dones_mini==1], each=num_free_pulses-1)
         
-        q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=3)
+        q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=1)
         
         if(eps>epsilon_min){eps = eps*eps_decay}
         
@@ -112,6 +112,5 @@ rewards_mini = rewards[minibatch_idx]
 dones_mini = dones[minibatch_idx]
 
 
-q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=3,stepmax=1500,threshold = .025)
-
+q.fit = replay(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini, reps=3,stepmax=1500,threshold = .1)
 

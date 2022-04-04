@@ -32,20 +32,20 @@ truncnorm = function(samples, loc=0, scale=1, upr=Inf, lwr=-Inf){
 
 generate_pd1_stacked = function(radiation_day, totaltime,pd1_times = c(-2,0,2,4)){
   num_pd1 = length(pd1_times)
-  max_stack = 2
+  max_stack = 1.5
   
   pd1_mat = matrix(rep(0, (totaltime+7)*num_pd1), nrow = totaltime+7, ncol = num_pd1)
   for(pd1_idx in 1:num_pd1){
     start_time= pd1_times[pd1_idx]+15
     duration=7
-    pd1_mat[(start_time):(start_time+duration),pd1_idx] = pd1_mat[(start_time):(start_time+duration),pd1_idx]+ seq(2,0, length.out = duration+1)
+    pd1_mat[(start_time):(start_time+duration),pd1_idx] = pd1_mat[(start_time):(start_time+duration),pd1_idx]+ seq(1,0, length.out = duration+1)
   }
   if(length(radiation_day)>0){
     for(pd1_idx in 1:num_pd1){
       start_times= pd1_times[pd1_idx]+radiation_day
       duration=7
       for(start_time in start_times){
-      pd1_mat[(start_time):(start_time+duration),pd1_idx] = pd1_mat[(start_time):(start_time+duration),pd1_idx]+ seq(2,0, length.out = duration+1)
+      pd1_mat[(start_time):(start_time+duration),pd1_idx] = pd1_mat[(start_time):(start_time+duration),pd1_idx]+ seq(1,0, length.out = duration+1)
       }
     }
   }

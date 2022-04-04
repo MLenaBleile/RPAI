@@ -138,12 +138,11 @@ make_parameter_mat = function(num_mice){
   parameter_mat[,"lambda"] = truncnorm(num_mice, loc=lambda,scale=.2, lwr=0, upr=1)
   #parameter_mat[,'BT0'] = truncnorm(num_mice, loc=BT0,scale=.001, lwr=0, upr=1)
   #parameter_mat[,"lambda"] = log(seq(1,exp(1), length.out=num_mice))
-  parameter_mat[,"rho"] = truncnorm(num_mice, loc = rho, scale=.001,upr=3, lwr=0)
-  parameter_mat[,"mu"] = truncnorm(num_mice, loc = mu, scale=.0000025,upr=1, lwr=0)
+  parameter_mat[,"rho"] = truncnorm(num_mice, loc = rho, scale=.01,upr=3, lwr=0)
+  parameter_mat[,"mu"] = truncnorm(num_mice, loc = mu, scale=.00005,upr=1, lwr=0)
   #parameter_mat[,"omega1"] = truncnorm(num_mice, loc = omega1, scale=4e-6,upr=1, lwr=0.001)
   parameter_mat
 }
-
 generate_one_counterfactualset = function(parameter_vec, total_days, potential_actions, wait_time){
   counterfactual_rtdays = 15+potential_actions+wait_time
   counterfactualset = matrix(NA, nrow=length(potential_actions), ncol=total_days)

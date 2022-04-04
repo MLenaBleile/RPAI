@@ -1,3 +1,7 @@
+make_potential_action_mat = function(potential_actions, num_free_pulses){
+  expand.grid(rep(list(potential_actions), num_free_pulses))
+}
+
 make_default_para_set = function(){
   para_set = matrix(NA, nrow=27, ncol=3)
   param_names = c("alpha","beta","omega1","omega2","phi","lambda","rho","BT0","alpha1","TT0","psi","mu","gam","tau")
@@ -32,20 +36,22 @@ truncnorm = function(samples, loc=0, scale=1, upr=Inf, lwr=-Inf){
 
 generate_pd1_stacked = function(radiation_day, totaltime,pd1_times = c(-2,0,2,4)){
   num_pd1 = 4
-  max_stack = 2
+  max_stack = 1.5
   
   pd1_mat = matrix(rep(0, (totaltime+7)*num_pd1), nrow = totaltime+7, ncol = num_pd1)
   for(pd1_idx in 1:num_pd1){
     start_time= pd1_times[pd1_idx]+15
     duration=7
-    pd1_mat[(start_time):(start_time+duration),pd1_idx] = pd1_mat[(start_time):(start_time+duration),pd1_idx]+ seq(2,0, length.out = duration+1)
+    pdl1time = min(start_time+duration, totaltime)
+    pd1_mat[(start_time):(pdl1time),pd1_idx] = pd1_mat[(start_time):(pdl1time),pd1_idx]+ seq(1,0, length.out = duration+1)[1:length(start_time:pdl1time)]
   }
   if(length(radiation_day)>0){
     for(pd1_idx in 1:num_pd1){
       start_times= pd1_times[pd1_idx]+radiation_day
       duration=7
       for(start_time in start_times){
-      pd1_mat[(start_time):(start_time+duration),pd1_idx] = pd1_mat[(start_time):(start_time+duration),pd1_idx]+ seq(2,0, length.out = duration+1)
+      pdl1time = min(start_time+duration, totaltime)
+      pd1_mat[(start_time):(pdl1time),pd1_idx] = pd1_mat[(start_time):(pdl1time),pd1_idx]+ seq(1,0, length.out = duration+1)[1:length(start_time:pdl1time)]
       }
     }
   }
@@ -97,9 +103,9 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
   TTn_vec[1]<-para_set['TT0','best']
   BTn_vec[1]<-para_set['BT0','best']
   dose_vec=rep(0, maxtime)
-  dose_vec[15] = 1
-  dose_vec[radiation_days] = 1
-
+  dose_vec[15] = 10
+  dose_vec[radiation_days] = 10
+  #print(radiation_days)
   pd1_vec = generate_pd1_stacked(radiation_days, totaltime=maxtime)
 
 
@@ -117,15 +123,17 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
     Tn_vec[i+1]<-Tn_update(SnT=SnT_vec[i],Tn=Tn_vec[i],mu=para_set['mu','best'],Zn=Zn_vec[i])
   }
   #print(Tn_vec)
-  return(Tn_vec)
+  out.list = list(Tn_vec, dose_vec, pd1_vec)
+  names(out.list) = c("ltv","d","p")
+  return(out.list)
 }
 
 make_parameter_mat = function(num_mice){
   mu=0.21601
   rho = 1.707
-  lambda = 0.10441
+  lambda = 0.30441
   omega1 = 0.02349
-  omega2 = 0.001404
+  omega2 = 0.01404
   BT0 = 0.00001
   TT0 = 0
   Tinit = 1
@@ -133,10 +141,9 @@ make_parameter_mat = function(num_mice){
   parameter_mat = matrix(rep(parameter_vec, num_mice), nrow=num_mice, byrow = T)
   colnames(parameter_mat) = c("mu","rho","lambda","omega1","omega2","BT0","TT0","Tinit")
   one.loc = lambda
-  one.scale=.5
   #parameter_mat[,'lambda'] = rbeta(num_mice,shape1 = one.loc*one.scale, shape2 = (1-one.loc)*one.scale)
   #parameter_mat[,'rho'] = sample(c(0,rho), num_mice, replace=T)
-  parameter_mat[,"lambda"] = truncnorm(num_mice, loc=lambda,scale=.1, lwr=0, upr=1)
+  parameter_mat[,"lambda"] = truncnorm(num_mice, loc=lambda,scale=.2, lwr=0, upr=1)
   #parameter_mat[,'BT0'] = truncnorm(num_mice, loc=BT0,scale=.001, lwr=0, upr=1)
   #parameter_mat[,"lambda"] = log(seq(1,exp(1), length.out=num_mice))
   parameter_mat[,"rho"] = truncnorm(num_mice, loc = rho, scale=.001,upr=3, lwr=0)
@@ -149,7 +156,7 @@ generate_one_counterfactualset = function(parameter_vec, total_days, potential_a
   counterfactual_rtdays = 15+potential_actions+wait_time
   counterfactualset = matrix(NA, nrow=length(potential_actions), ncol=total_days)
   for(one.counterfactual.idx in 1:nrow(counterfactualset)){
-    counterfactualset[one.counterfactual.idx,] = generate_one(radiation_days = c(counterfactual_rtdays[one.counterfactual.idx]),parameter_vec = parameter_vec, maxtime = total_days)
+    counterfactualset[one.counterfactual.idx,] = generate_one(radiation_days = c(counterfactual_rtdays[one.counterfactual.idx]),parameter_vec = parameter_vec, maxtime = total_days)$ltv
   }
   counterfactualset
 }

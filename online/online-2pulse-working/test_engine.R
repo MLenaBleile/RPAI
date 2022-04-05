@@ -1,16 +1,18 @@
+setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-working")
+source("data_generation_fncs.R")
+source("env_fncs_2pulse.R")
 
-
-test_num=100
+test_num=50
 maxtime = 40
 num_free_pulses=1
 wait_time=7
-potential_actions = 1:11 + wait_time
+potential_actions = 1:13 + wait_time
 all.action.mat = make_potential_action_mat(potential_actions = potential_actions, num_free_pulses = num_free_pulses)
 inc_days = 15-2+wait_time
 minibatch_parameters=make_parameter_mat(test_num)
 
 agent.outcomes=rep(NA, test_num)
-reference_days=c(11,12,14)
+reference_days=c(10,14,20)
 reference.outcomes=matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 colnames(reference.outcomes) = c(paste("day",reference_days),'random')
 selected_actions=matrix(NA, nrow=test_num, ncol=num_free_pulses)
@@ -51,9 +53,10 @@ reference_actions = c(reference_days, "random")
 
 effect.sizes = rep(NA, 4)
 
-
+#x11()
+par(mfrow=c(2,2))
 colors = c("red","blue","orange","purple")
-plot(density(agent.outcomes-reference.outcomes[,1]), xlab="fixed final ltv - agent final ltv",type="n",xlim=c(-.2,.2), main="2 pulse performance", col="red", ylim=c(0,60))
+plot(density(agent.outcomes-reference.outcomes[,1]),xlim=c(-.05,.2),xlab="fixed final ltv - agent final ltv",type="n", main="2 pulse performance", col="red", ylim=c(0,60))
 for(refday.idx in 1:4){
   deltaref = reference.outcomes[,refday.idx]
   lines(density(deltaref - agent.outcomes), col=colors[refday.idx])

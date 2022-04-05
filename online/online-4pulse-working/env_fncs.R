@@ -1,75 +1,41 @@
 
-sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, waitime_vec=c(7,7), total_time=60){
-  num_zeros = total_time-length(one.sequence)
-  num_action_zeros = num_free_pulses-length(action.vec)
-  if(num_action_zeros>0){
-    action.vec=c(rep(0, num_action_zeros),action.vec)
+get.optim.plan = function(parameter_vec,maxtime, all.action.mat){
+  ftv.vec= rep(NA, nrow(all.action.mat))
+  for(j in 1:nrow(all.action.mat)){
+    one.action.vec = as.numeric(all.action.mat[j,])
+    one.sequence = generate_one(radiation_days=c(cumsum(one.action.vec)+15), parameter_vec=parameter_vec, maxtime=maxtime+10)$ltv
+    ftv.vec[j] = one.sequence[maxtime]
   }
-  out = c(rep(0, num_zeros),one.sequence,action.vec)
-  timevec=1:length(one.sequence)
-  dose_vec = rep(0, length(one.sequence))
-  dose_vec[15:length(dose_vec)]=1
-  rtday1 = 15+waitime_vec[1]+action.vec[1]
-  if(length(dose_vec)>rtday1 & (action.vec[1]>0)){
-    dose_vec[rtday1:length(dose_vec)]=2
-    pd1_vec= generate_pd1_stacked(rtday1, totaltime = length(dose_vec)+7)[1:length(dose_vec)]
-  }else{
-    pd1_vec = generate_pd1_stacked(c(), totaltime=length(dose_vec)+7)[1:length(dose_vec)]
-  }
-  
-  fit=lm(log(one.sequence)~timevec*dose_vec+dose_vec:pd1_vec)
-  ss=summary(fit)
-  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared, out,length(one.sequence))
-  #out = c(out,length(one.sequence))
-  out
+  best.action.vec=all.action.mat[which.min(ftv.vec),]
+  best.action.vec
 }
 
-get_max = function(q.fit, one.state, potential_actions){
+r.to.unit = function(x, s=1){s/(1+exp(x))}
+unit.to.r = function(y,s=1){log(s/y - 1)}
+obj.fnc = function(input_vec, one.sequence,radiation_days=c()){
+  mt=length(one.sequence)
   
-  potential.input = as.data.frame(matrix(rep(one.state, length(potential_actions)), nrow=length(potential_actions), byrow=T))
-  potential.input$actions = potential_actions
-  potential.input$actions2 = potential_actions^2
-  #potential.input = predict(q.fit[['pcaobj']], potential.input)
-  #predictions=predict(q.fit[['nnet']], potential.input[,1:6])
-  predictions=predict(q.fit, potential.input)
-  best_action = max(predictions)
-  best_action
+  parameter_vec = c(r.to.unit(input_vec[1]), r.to.unit(input_vec[2]), (r.to.unit(input_vec[3])*.5+1.5))
+  names(parameter_vec) = c("mu","lambda","rho")
+  one.sim.pair = generate_one(radiation_days = radiation_days,parameter_vec=parameter_vec, maxtime = mt)
+  one.sim = one.sim.pair$ltv
+  day.vec=1:mt
+  dose.vec=cumsum(one.sim.pair$d/10)
+  pd1_vec=one.sim.pair$p[1:length(day.vec)]
+  sim.mod = lm(log(one.sim)~day.vec*dose.vec*pd1_vec)
+  real.mod = lm(log(one.sequence)~day.vec*dose.vec*pd1_vec)
+  ss.sim = summary(sim.mod)
+  ss.real = summary(real.mod)
+  sim.info = c(ss.sim$r.squared, 2*as.numeric(ss.sim$coefficients[,1]), as.numeric(ss.real$coefficients[,2]))
+  real.info = c(ss.real$r.squared, 2*as.numeric(ss.real$coefficients[,1]), as.numeric(ss.real$coefficients[,2]))
+  #sqrt(mean((log(one.sim[mt])-log(one.sequence[mt]))^2))
+  sqrt(mean((sim.info-real.info)^2)) + (0)*sqrt(mean((log(one.sim) - log(one.sequence))^2))
 }
 
-get_action = function(q.fit,one.state, potential_actions){
-  
-  potential.input = as.data.frame(matrix(rep(one.state, length(potential_actions)), nrow=length(potential_actions), byrow=T))
-  potential.input$actions = potential_actions
-  potential.input$actions2=potential_actions^2
-  #potential.input = predict(q.fit[['pcaobj']], potential.input)
-  predictions=predict(q.fit, potential.input)
-  best_action = which.max(predictions)
-  best_action
-}
-
-replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,nnet_size=5, gam=.9, potential_actions=1:10){
-  minisize=nrow(state_mat_mini)
-  targets=rep(NA, minisize)
-  for(idx in 1:minisize){
-    target = rewards_mini[idx]
-    if(done){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
-    targets[idx] = target
-    
-  }
-  inputs=as.data.frame(state_mat_mini)
-  inputs$actions=actions_mini
-  inputs$actions2=actions_mini^2
-  inputs$targets=targets
-  #q.fit = nnet::nnet(targets~(.)+(.)*actions, data=scale(inputs), size=nnet_size)
-  #pca.obj = stats::prcomp(inputs)
-
-  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6,4), threshold = 100000,
-                    stepmax = 3, rep = 1, startweights = q.fit$weights,
-                    learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
-                                                                          plus = 1.2), learningrate = NULL, lifesign = "none",
-                    lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
-                    act.fct = "logistic", linear.output = TRUE, exclude = NULL,
-                    constant.weights = NULL, likelihood = FALSE)
-  
-  q.fit
+optimize.model = function(one.sequence, radiation_days=c()){
+  input_vec = c(unit.to.r(runif(1)),unit.to.r(runif(1)), unit.to.r(runif(1,0,3),3))
+  optim.obj = optim(input_vec, obj.fnc, one.sequence=one.sequence, radiation_days=radiation_days)
+  estimated.input = optim.obj$par
+  estimated.par = c(r.to.unit(estimated.input[1]), r.to.unit(estimated.input[2]), r.to.unit((estimated.input[3]))*.5+1.5)
+  estimated.par
 }

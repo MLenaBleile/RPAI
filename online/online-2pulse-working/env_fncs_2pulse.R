@@ -48,7 +48,7 @@ unit.to.r = function(y,s=1){log(s/y - 1)}
 obj.fnc = function(input_vec, one.sequence,radiation_days=c()){
   mt=length(one.sequence)
  
-  parameter_vec = c(r.to.unit(input_vec[1]), r.to.unit(input_vec[2]), (r.to.unit(input_vec[3])*.2+1.6))
+  parameter_vec = c(r.to.unit(input_vec[1]), r.to.unit(input_vec[2]), (r.to.unit(input_vec[3])*.5+1.5))
   names(parameter_vec) = c("mu","lambda","rho")
   one.sim.pair = generate_one(radiation_days = radiation_days,parameter_vec=parameter_vec, maxtime = mt)
   one.sim = one.sim.pair$ltv
@@ -69,7 +69,7 @@ optimize.model = function(one.sequence, radiation_days=c()){
   input_vec = c(unit.to.r(runif(1)),unit.to.r(runif(1)), unit.to.r(runif(1,0,3),3))
   optim.obj = optim(input_vec, obj.fnc, one.sequence=one.sequence, radiation_days=radiation_days)
   estimated.input = optim.obj$par
-  estimated.par = c(r.to.unit(estimated.input[1]), r.to.unit(estimated.input[2]), r.to.unit((estimated.input[3]))*.2+1.6)
+  estimated.par = c(r.to.unit(estimated.input[1]), r.to.unit(estimated.input[2]), r.to.unit((estimated.input[3]))*.5+1.5)
   estimated.par
 }
 

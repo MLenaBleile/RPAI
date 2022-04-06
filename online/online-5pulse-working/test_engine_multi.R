@@ -3,7 +3,7 @@ source("data_generation_fncs.R")
 source("env_fncs.R")
 setwd("~/RPAI/online/online-5pulse-working")
 
-test_num=30
+test_num=100
 maxtime = 120
 num_free_pulses=4
 wait_time=9
@@ -13,7 +13,7 @@ inc_days = 15-2+wait_time
 parameter_mat=make_parameter_mat(test_num)
 
 
-test_num = 30
+test_num = 100
 
 selected_actions=c()
 

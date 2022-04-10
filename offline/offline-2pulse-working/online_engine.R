@@ -1,11 +1,10 @@
-setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-working")
+setwd("~/RPAI/online/online-2pulse-working")
 source("data_generation_fncs.R")
 source("env_fncs_2pulse.R")
 
 set.seed(1998)
-max_epochs=600
-test_num=100
-parameter_mat = make_parameter_mat(max_epochs+test_num)
+max_epochs=700
+parameter_mat = make_parameter_mat(max_epochs+500)
 
 total_time=40
 total_days=total_time
@@ -22,9 +21,9 @@ actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)
 eps=1
 eps.vec=c(eps)
-eps_decay=.999
+eps_decay=1
 epsilon_min=.001
-minibatch_size=64
+minibatch_size=700
 epoch=1
 
 
@@ -47,14 +46,14 @@ while(epoch < max_epochs){
   mouse=mouse+1
   action.vec=c()
   current.time=15-2+waitime_vec[1]
-  parameter_vec=parameter_mat[mouse+test_num+1,]
+  parameter_vec=parameter_mat[mouse+501,]
   one.sequence = generate_one(radiation_days=action.vec,parameter_vec=parameter_vec,maxtime = current.time)
   for(pulse in 1:(num_free_pulses)){
-    one.state = sequence_to_state(one.sequence, action.vec, done=done, num_free_pulses=num_free_pulses, mouse=mouse)
+    one.state = sequence_to_state(one.sequence, action.vec, done, num_free_pulses=num_free_pulses)
     done = (pulse==num_free_pulses)
     dones[epoch]=done
-    state_mat=rbind(state_mat, one.state)
-    one.action = get_action(q.fit, one.state, potential_actions = potential_actions)
+    state_mat[epoch,]=one.state
+    if(runif(1)>eps&(epoch>(minibatch_size+1))){one.action = get_action(q.fit, one.state, potential_actions = potential_actions); israndom[epoch]=F}else{one.action=sample(potential_actions,1)}
     action.vec=c(action.vec, one.action)
     actions[epoch]=one.action
     radiation_days = cumsum(action.vec+waitime_vec[1:length(action.vec)])+15

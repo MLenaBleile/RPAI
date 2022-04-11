@@ -1,74 +1,89 @@
-
-sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, waitime_vec=c(7,7), total_time=60){
-  num_zeros = total_time-length(one.sequence)
-  num_action_zeros = num_free_pulses-length(action.vec)
-  if(num_action_zeros>0){
-    action.vec=c(rep(0, num_action_zeros),action.vec)
-  }
-  out = c(rep(0, num_zeros),one.sequence,action.vec)
-  timevec=1:length(one.sequence)
-  dose_vec = rep(0, length(one.sequence))
-  dose_vec[15:length(dose_vec)]=1
-  rtday1 = 15+waitime_vec[1]+action.vec[1]
-  if(length(dose_vec)>rtday1 & (action.vec[1]>0)){
-    dose_vec[rtday1:length(dose_vec)]=2
-    pd1_vec= generate_pd1_stacked(rtday1, totaltime = length(dose_vec)+7)[1:length(dose_vec)]
-  }else{
-    pd1_vec = generate_pd1_stacked(c(), totaltime=length(dose_vec)+7)[1:length(dose_vec)]
-  }
-  
-  fit=lm(log(one.sequence)~timevec*dose_vec+dose_vec:pd1_vec)
-  ss=summary(fit)
-  #out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared, out, length(one.sequence))
-  out = c(out, length(one.sequence))
+make_potential_action_mat = function(potential_actions, num_free_pulses){
+all.action.mat = expand.grid(rep(list(potential_actions), num_free_pulses))
+rownames(all.action.mat) = get_labels(all.action.mat = all.action.mat)
+all.action.mat
 }
 
-get_max = function(q.fit, one.state, potential_actions){
-  
-  potential.input = as.data.frame(matrix(rep(one.state, length(potential_actions)), nrow=length(potential_actions), byrow=T))
-  potential.input$actions = potential_actions
-  potential.input$actions2 = potential_actions^2
-  #potential.input = predict(q.fit[['pcaobj']], potential.input)
-  #predictions=predict(q.fit[['nnet']], potential.input[,1:6])
-  predictions=predict(q.fit, potential.input)
-  best_action = max(predictions)
-  best_action
-}
 
-get_action = function(q.fit,one.state, potential_actions){
-  
-  potential.input = as.data.frame(matrix(rep(one.state, length(potential_actions)), nrow=length(potential_actions), byrow=T))
-  potential.input$actions = potential_actions
-  potential.input$actions2=potential_actions^2
-  #potential.input = predict(q.fit[['pcaobj']], potential.input)
-  predictions=predict(q.fit, potential.input)
-  best_action = which.max(predictions)
-  best_action
-}
-
-replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mini, dones_mini,nnet_size=5, gam=.99, potential_actions=1:10){
-  minisize=nrow(state_mat_mini)
-  targets=rep(NA, minisize)
-  for(idx in 1:minisize){
-    target = rewards_mini[idx]
-    #if(FALSE){target=target + gam*get_max(q.fit, one.state=nextstate_mat_mini[idx,], potential_actions = potential_actions)}
-    targets[idx] = target
-    
+generate_one_initial_batch = function(parameter_mat,inc.time, total_time){
+  minibatch_size = nrow(parameter_mat)
+  one_batch = matrix(NA, nrow=minibatch_size, ncol=total_time)
+  for(idx in 1:minibatch_size){
+    one.pair = generate_one(c(), parameter_mat[idx,], inc.time)
+    one_batch[idx,1:inc.time] = one.pair$ltv
   }
-  inputs=as.data.frame(state_mat_mini)
-  inputs$actions=actions_mini
-  inputs$actions2=actions_mini^2
-  inputs$targets=targets
-  #q.fit = nnet::nnet(targets~(.)+(.)*actions, data=scale(inputs), size=nnet_size)
-  #pca.obj = stats::prcomp(inputs)
+  one_batch
+}
+
+generate_one_batch = function(parameter_mat, action_mat, current.times, total_time){
+  minibatch_size = nrow(parameter_mat)
   
-  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(10,6), threshold = 100000,
-                    stepmax = 1, rep = 1, startweights = q.fit$weights,
-                    learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
-                                                                          plus = 1.2), learningrate = NULL, lifesign = "none",
-                    lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
-                    act.fct = "logistic", linear.output = TRUE, exclude = NULL,
-                    constant.weights = NULL, likelihood = FALSE)
-  
+  one_batch = matrix(NA, nrow=minibatch_size, ncol=total_time)
+  for(idx in 1:minibatch_size){
+    active.time=min(current.times[idx], total_time)
+    one.pair = generate_one(cumsum(action_mat[idx,])+15, parameter_mat[idx,], total_time)
+    one_batch[idx,1:active.time] = one.pair$ltv[1:active.time]
+  }
+  one_batch
+}
+
+get_labels = function(all.action.mat){
+  char.mat = apply(all.action.mat,c(2),as.character)
+  char.labs = char.mat[,1]
+  if(ncol(char.mat)>1){
+  for(jj in 2:ncol(char.mat)){
+    char.labs = paste(char.labs, char.mat[,jj], sep=".")
+  }}
+  char.labs
+}
+
+update_model = function(q.fit,all_data, one_batch, action_mat){
+  character.actions = get_labels(action_mat)
+  unique.trt = unique(character.actions)
+  for(one.group.idx in 1:length(unique.trt)){
+  one.group.mice = which(character.actions==unique.trt[one.group.idx])
+  one_ds = as.data.frame(rbind(all_data[one.group.mice,],one_batch))
+  long_days = 1:ncol(one_ds)
+  vnames = colnames(one_ds)
+  one_ds$animal = 1:nrow(one_ds)
+  one_ds.long = reshape2::melt(one_ds, id.vars=c("animal"))
+  one_ds.long$day = rep(long_days, length(one.group.mice)+nrow(one_batch))
+  one.model = glm(value~as.factor(day), data=one_ds.long)
+  q.fit[[unique.trt[one.group.idx]]] = one.model
+  }
   q.fit
+}
+
+get_predictions = function(q.fit, one_batch, all.action.mat,action_mat,pulse, add_variability=T){
+  prediction.mat = matrix(NA, nrow=nrow(one_batch), ncol=length(q.fit))
+  colnames(prediction.mat) = names(q.fit)
+  for(one.mouse.idx in 1:nrow(one_batch)){
+    restricted.action.idx = which(all.action.mat[,1:pulse] == action_mat[one.mouse.idx,1:pulse])
+    restricted.action.mat = all.action.mat[restricted.action.idx,]
+    character.actions = get_labels(restricted.action.mat)
+    for(one.group.idx in 1:nrow(restricted.action.mat)){
+      one.mod = q.fit[[character.actions[one.group.idx]]]
+      mu.vec = one.mod$coefficients
+      sig.mat = vcov(one.mod)
+      naidx = which(is.na(one_batch[one.mouse.idx,]))
+      non.naidx = which(!is.na(one_batch[one.mouse.idx,]))
+      po = length(non.naidx)
+      pm = length(naidx)
+      mu.o = one_batch[one.mouse.idx,non.naidx]
+      mut.o = one.mod$coefficients[non.naidx]
+      mu.m = one.mod$coefficients[naidx]
+      sig.oo = sig.mat[1:po,1:po]
+      sig.mm = sig.mat[(po+1):(pm+po), (po+1):(pm+po)]
+      sig.mo = sig.mat[(po+1):(pm+po), 1:po]
+      mu.m.cond = mu.m + sig.mo%*%solve(sig.oo)%*%(mu.o - mut.o)
+      sig.m.cond = sig.mm - sig.mo%*%solve(sig.oo)%*%t(sig.mo)
+      if(add_variability){one.prediction.vec= MASS::mvrnorm(1, mu=mu.m.cond, Sigma=sig.m.cond)}else{
+        one.prediction.vec = mu.m.cond
+      }
+      prediction.col = which(colnames(prediction.mat)==character.actions[one.group.idx])
+      prediction.mat[one.mouse.idx, prediction.col] = one.prediction.vec[length(mu.m.cond)]
+    }
+  }
+  
+  prediction.mat
 }

@@ -1,93 +1,49 @@
-<<<<<<< Updated upstream
-test_indices=1:test_num
+test_num=2*minibatch_size*50
+all.action.mat = make_potential_action_mat(potential_actions = potential_actions, num_free_pulses = num_free_pulses)
+parameter_mat = make_parameter_mat(minibatch_size)
+action_mat = matrix(sample(potential_actions, minibatch_size, replace=T),byrow=T, nrow=minibatch_size, ncol=num_free_pulses)
+one_batch = generate_one_batch(parameter_mat = parameter_mat, action_mat, current.time = total_time)
 
-optimal_actions=rep(NA, test_num)
-data_mat = matrix(NA, ncol=20, nrow=test_num)
-true.mins = rep(NA, test_num)
-agent.outcomes=rep(NA, test_num)
-reference_days=c(10,14,20)
-reference.outcomes=matrix(NA, nrow=test_num, ncol=length(reference_days))
-=======
-test_indices=1:500
-num_mice = length(test_indices)
-optimal_actions=rep(NA, num_mice)
-data_mat = matrix(NA, ncol=20, nrow=num_mice)
-true.mins = rep(NA, num_mice)
-agent.outcomes=rep(NA, num_mice)
-reference_days=c(1,10,20)
-reference.outcomes=matrix(NA, nrow=num_mice, ncol=length(reference_days))
->>>>>>> Stashed changes
-selected_actions=c()
+all_test_data= matrix(NA, ncol=total_time, nrow=0)
+all_test_actions = matrix(NA, ncol=num_free_pulses, nrow=0)
+all_test_parameters = matrix(NA, ncol=8, nrow=0)
+animal.idx=nrow(all_test_data)
 
-reference_day = 8
-for(mouse in 1:test_num){
-  parameter_vec= parameter_mat[mouse,]
-  one.optima= which.min(one.reference[,total_days])
-  optimal_actions[mouse]= as.numeric(one.optima)
-  data_mat[mouse,] = one.reference[1,1:20]
-  true.mins[mouse]= log(min(one.reference[,total_days]))
-  for(refday.idx in 1:length(reference_days)){
-    reference_day = reference_days[refday.idx]
-    #day15.outcomes[mouse] = one.reference[reference_day-6,total_days]
-    reference.outcomes[mouse, refday.idx]=log(one.reference[reference_day,total_days])
-  }
-  one.sequence = data_mat[mouse,]
-  one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = c(), done=T, num_free_pulses = 1)
-  one.action = get_action(q.fit,one.state, potential_actions = 1:13)+waitime_vec[1]
-  selected_actions=c(selected_actions, one.action)
-  one.agent.treated.sequence = generate_one(one.action+15, parameter_vec=parameter_vec, maxtime=total_days)
-  agent.outcomes[mouse] = log(one.agent.treated.sequence[total_days])
+while(animal.idx<test_num){
+  parameter_mat = make_parameter_mat(test_num)
+  one_batch = generate_one_initial_batch(parameter_mat, inc.time, total_time)
+  #q.fit = update_model(q.fit,all_test_data, one_batch, action_mat)
+  prediction.mat = get_predictions(q.fit, one_batch, all.action.mat, add_variability = F)
+  best_actions = names(q.fit)[apply(prediction.mat, c(1), which.max)]
+  action_mat = as.matrix(as.numeric(best_actions), ncol=num_free_pulses)
+  one_updated_batch = generate_one_batch(parameter_mat, action_mat, current.time = total_time)
+  all_test_data = rbind(all_test_data, one_updated_batch)
+  all_test_parameters = rbind(all_test_parameters, parameter_mat)
+  all_test_actions = rbind(all_test_actions, action_mat)
+  animal.idx = nrow(all_test_data)
 }
 
-
-reference_actions = c(reference_days, "random")
-selected_actions
-deltamodel = abs(optimal_actions-selected_actions)
-delta15 =abs(optimal_actions-reference_days[2])
-colors = c("red","blue","orange","purple")
-adj_factor=2
-plot(density(delta15-deltamodel, adjust = adj_factor), xlab="fixed x loss - agent x loss", main="Density plot", col="red",ylim=c(0,0.8), xlim=c(-10,10))
+reference_days = c(1,10,14,20)
+ref.outcome.mat = matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
+references=c(paste("day",reference_days),"random")
+colnames(ref.outcome.mat)=references
 for(refday.idx in 1:length(reference_days)){
-  cat("\n info for reference:",reference_days[refday.idx])
-  deltaref = abs(optimal_actions-reference_days[refday.idx])
-  lines(density(deltaref - deltamodel, adjust = adj_factor), col=colors[refday.idx])
-  one.delta=deltaref-deltamodel
-  print(t.test(deltaref-deltamodel))
-  cohen = mean(deltaref-deltamodel)/sd(deltaref-deltamodel)
-  cat("effect size: ", cohen)
-  print(100*(length(test_indices)-length(one.delta[one.delta<0]))/length(test_indices))
+  ref_action_mat = matrix(reference_days[refday.idx],nrow=test_num, ncol=num_free_pulses)
+  reference_batch = generate_one_batch(all_test_parameters, ref_action_mat, total_time)
+  ref.outcome.mat[,refday.idx] = reference_batch[,total_time]
 }
-deltarandom = abs(optimal_actions-sample(7:17, test_num, replace=T))-deltamodel
-lines(density(abs(optimal_actions-sample(7:17, test_num, replace=T)) - deltamodel, adjust=adj_factor), col="purple")
-legend("topleft", legend=c(paste("day", reference_days),"random"), pch=16, col=colors)
-abline(v=0, lty=2)
-effect.sizes = rep(NA, 4)
+random_action_mat = matrix(sample(potential_actions, test_num*num_free_pulses, replace=T), nrow=test_num, ncol=num_free_pulses)
+random_batch = generate_one_batch(all_test_parameters, random_action_mat, total_time)
+ref.outcome.mat[,"random"] = random_batch[,total_time]
 
-deltamodel = agent.outcomes-true.mins
-delta15 =reference.outcomes[,2]-true.mins
-colors = c("red","blue","orange","purple")
-plot(density(delta15-deltamodel), xlab="fixed personalization loss - agent personalization loss",type="n",xlim=c(-.2,.2), main="2 pulse performance", col="red", ylim=c(0,60))
-for(refday.idx in 1:3){
-  deltaref = reference.outcomes[,refday.idx]-true.mins
-  lines(density(deltaref - deltamodel), col=colors[refday.idx])
-  test=t.test(deltaref-deltamodel)
-  print(test)
-  cohen = mean(deltaref-deltamodel)/sd(deltaref-deltamodel)
-  cat("effect size: ", cohen)
-  effect.sizes[refday.idx] = cohen
-  #cat(deltamodel[deltamodel>deltaref])
+
+plot(density(ref.outcome.mat[,"random"]-all_test_data[, total_time]),xlim=c(-.1,.5),main="2 pulse performance", type="n", xlab="ltv reference-ltv agent")
+colourss= rainbow(ncol(ref.outcome.mat))
+loss.means = rep(NA, length(references))
+for(refday.idx in 1:ncol(ref.outcome.mat)){
+  loss=ref.outcome.mat[,refday.idx]-all_test_data[, total_time]
+  lines(density(loss), col=colourss[refday.idx])
+  loss.means[refday.idx] = mean(loss)
 }
-<<<<<<< Updated upstream
-delta.diff.random = abs(optimal_actions-sample(7:17, test_num, replace=T)) - deltamodel
-effect.sizes[4] = mean(delta.diff.random)/sd(delta.diff.random)
-lines(density(abs(optimal_actions-sample(7:17, test_num, replace=T)) - deltamodel), col="purple")
-legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": d="), pch=16, col=c(colors, "purple"))
-=======
-delta.diff.random = abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel
-effect.sizes[4] = mean(delta.diff.random)
-lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel), col="purple")
-legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": "), pch=16, col=c(colors, "purple"))
->>>>>>> Stashed changes
+legend("topright", legend=paste(colnames(ref.outcome.mat), round(loss.means,digits=3), sep=": "), col=colourss, pch=16)
 abline(v=0, lty=2)
-
-print(table(selected_actions, optimal_actions))

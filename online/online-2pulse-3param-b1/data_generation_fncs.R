@@ -124,7 +124,7 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
   out.array =array(data=NA, dim=c(1, length(Tn_vec),4))
   dimnames(out.array) = list(NULL, NULL, c("ltv","d","p",'day'))
   out.array[1,,'ltv'] = log(Tn_vec)
-  out.array[1,,'d'] =dose_vec
+  out.array[1,,'d'] =cumsum(dose_vec/10)
   out.array[1,,'p'] = pd1_vec[1:length(Tn_vec)]
   out.array[1,,'day'] = 1:length(Tn_vec)
   names(out.list) = c("ltv","d","p")

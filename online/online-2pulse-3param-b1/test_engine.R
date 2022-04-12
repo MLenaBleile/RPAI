@@ -1,53 +1,80 @@
 
 
-#q.fit=readRDS("model.rds")
-test_num=2*minibatch_size*50
-all.action.mat = make_potential_action_mat(potential_actions = potential_actions, num_free_pulses = num_free_pulses)
-parameter_mat = make_parameter_mat(minibatch_size)
-action_mat = matrix(sample(potential_actions, minibatch_size, replace=T),byrow=T, nrow=minibatch_size, ncol=num_free_pulses)
-one_batch = generate_one_batch(parameter_mat = parameter_mat, action_mat, current.time = total_time)
+# #q.fit=readRDS("model.rds")
+# test_num=50
+# 
+# 
+# train_num = dim(all_data)[1]
+# animal.idx=dim(all_data)[1]
+# test_idx = (train_num+1):(train_num+test_num)
+# 
+# while(animal.idx<(test_num+train_num)){
+#   cat("animal:", animal.idx,"\n")
+#   parameter_mat = make_parameter_mat(5)
+#   one.pair = generate_one(c(), parameter_mat[1,], inc.time)
+#   
+#   num.extra = -dim(one.pair)[2] + dim(all_data)[2]
+#   one.pair.extended = abind::abind(one.pair, array(NA, dim=c(1, num.extra,4)), along=2)
+#   dimnames(one.pair.extended) = list(animal.idx+1, 1:total_time,c("ltv","d","p","day"))
+#   q.fit = update_model(q.fit,all_data, one.pair.extended, all_actions = all_actions, all.action.mat)
+#   
+#   prediction.vec = get_predictions(q.fit, one.pair.extended, all.action.mat, add_variability = F)
+#   best_action = names(q.fit)[which.min(prediction.vec)]
+#   action_mat = as.matrix(as.numeric(best_action), ncol=num_free_pulses)
+#   parameter_mat=t(as.matrix(parameter_mat[1,], nrow=1, ncol=8))
+#   one_updated_batch = generate_one_batch(parameter_mat, action_mat, current.time = total_time)
+#   all_data = abind::abind(all_data, one_updated_batch,along=1)
+#   
+#   all_parameters = rbind(all_parameters, parameter_mat)
+#   all_actions = rbind(all_actions, action_mat)
+#   animal.idx = nrow(all_data)
+#   dimnames(all_data) = list(1:animal.idx, 1:total_time, c("ltv","d","p","day"))
+# }
 
-all_test_data= matrix(NA, ncol=total_time, nrow=0)
-all_test_actions = matrix(NA, ncol=num_free_pulses, nrow=0)
-all_test_parameters = matrix(NA, ncol=8, nrow=0)
-animal.idx=nrow(all_test_data)
+test_idx = 11:50
+test_num=length(test_idx)
+all_test_data = all_data[test_idx,,]
+all_test_parameters = all_parameters[test_idx,]
+all_test_actions = all_actions[test_idx,]
 
-while(animal.idx<test_num){
-  parameter_mat = make_parameter_mat(test_num)
-  one_batch = generate_one_initial_batch(parameter_mat, inc.time, total_time)
-  #q.fit = update_model(q.fit,all_test_data, one_batch, action_mat)
-  prediction.mat = get_predictions(q.fit, one_batch, all.action.mat, add_variability = F)
-  best_actions = names(q.fit)[apply(prediction.mat, c(1), which.min)]
-  action_mat = as.matrix(as.numeric(best_actions), ncol=num_free_pulses)
-  one_updated_batch = generate_one_batch(parameter_mat, action_mat, current.time = total_time)
-  all_test_data = rbind(all_test_data, one_updated_batch)
-  all_test_parameters = rbind(all_test_parameters, parameter_mat)
-  all_test_actions = rbind(all_test_actions, action_mat)
-  animal.idx = nrow(all_test_data)
-}
-
-reference_days = c(1,10,14,20)
+reference_days = c(1,potential_actions, 20)
+optim_actions=c()
 ref.outcome.mat = matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 references=c(paste("day",reference_days),"random")
 colnames(ref.outcome.mat)=references
-for(refday.idx in 1:length(reference_days)){
-  ref_action_mat = matrix(reference_days[refday.idx],nrow=test_num, ncol=num_free_pulses)
-  reference_batch = generate_one_batch(all_test_parameters, ref_action_mat, total_time)
-  ref.outcome.mat[,refday.idx] = reference_batch[,total_time]
+for(test.id in test_idx ){
+  for(refday.idx in 1:length(reference_days)){
+    action_mat = as.matrix(reference_days[refday.idx], ncol=num_free_pulses)
+    parameter_mat=t(as.matrix(all_parameters[test.id,], nrow=1, ncol=8))
+    one_ref_sequence = generate_one_batch(parameter_mat, action_mat, current.time = total_time)
+    ref.outcome.mat[test.id-train_num,refday.idx] = one_ref_sequence[,total_time,'ltv']
+  }
+  action_mat = as.matrix(sample(potential_actions,1), ncol=num_free_pulses)
+  parameter_mat=t(as.matrix(all_parameters[test.id,], nrow=1, ncol=8))
+  one_ref_sequence = generate_one_batch(parameter_mat, action_mat, current.time = total_time)
+  ref.outcome.mat[test.id-train_num,'random'] = one_ref_sequence[,total_time,'ltv']
+  optim_actions=c(optim_actions, get.optim.plan(parameter_mat[1,], maxtime=total_time, all.action.mat = all.action.mat))
 }
-random_action_mat = matrix(sample(potential_actions, test_num*num_free_pulses, replace=T), nrow=test_num, ncol=num_free_pulses)
-random_batch = generate_one_batch(all_test_parameters, random_action_mat, total_time)
-ref.outcome.mat[,"random"] = random_batch[,total_time]
 
 
-plot(density(ref.outcome.mat[,"random"]-all_test_data[, total_time]),xlim=c(-.1,.5),main="2 pulse performance", type="n", xlab="ltv reference-ltv agent")
+adj=1
+loss.mat = matrix(NA, nrow=test_num, ncol=ncol(ref.outcome.mat))
+plot(density(ref.outcome.mat[,"random"]-all_test_data[, total_time,'ltv'],adjust=adj),xlim=c(-1,5),main="2 pulse performance", type="n", xlab="ltv reference-ltv agent")
 colourss= rainbow(ncol(ref.outcome.mat))
 loss.means = rep(NA, length(references))
+loss.medians = rep(NA, length(references))
 for(refday.idx in 1:ncol(ref.outcome.mat)){
-  loss=ref.outcome.mat[,refday.idx]-all_test_data[, total_time]
-  lines(density(loss), col=colourss[refday.idx])
+  loss=ref.outcome.mat[,refday.idx]-all_test_data[, total_time,'ltv']
+  lines(density(loss, adjust = adj), col=colourss[refday.idx])
+  loss.mat[,refday.idx]=loss
   loss.means[refday.idx] = mean(loss)
+  loss.medians[refday.idx] = median(loss)
 }
-legend("topright", legend=paste(colnames(ref.outcome.mat), round(loss.means,digits=3), sep=": "), col=colourss, pch=16)
+legend("topright", legend=paste(colnames(ref.outcome.mat), round(loss.means,digits=4), sep=": "), col=colourss, pch=16)
 abline(v=0, lty=2)
-print(table(all_test_actions))
+print(table(all_test_actions, optim_actions))
+
+colnames(loss.mat) = colnames(ref.outcome.mat)
+loss.df = stack(as.data.frame(loss.mat))
+
+beanplot::beanplot(values~ind, data=loss.df)

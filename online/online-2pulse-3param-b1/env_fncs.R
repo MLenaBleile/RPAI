@@ -25,7 +25,7 @@ generate_one_batch = function(parameter_mat, action_mat, current.time){
 }
 
 get_labels = function(all.action.mat){
-  char.mat = apply(all.action.mat,c(2),as.character)
+  char.mat = as.matrix(apply(all.action.mat,c(2),as.character))
   char.labs = char.mat[,1]
   if(ncol(char.mat)>1){
   for(jj in 2:ncol(char.mat)){
@@ -34,51 +34,36 @@ get_labels = function(all.action.mat){
   char.labs
 }
 
-update_model = function(q.fit,all_data, one.pair, action_mat){
-  character.actions = get_labels(action_mat)
-  unique.trt = unique(character.actions)
-  for(one.group.idx in 1:length(unique.trt)){
-  one.group.mice = which(character.actions==unique.trt[one.group.idx])
-  num.extra = -dim(one.pair)[2] + dim(all_data)[2]
-  one.pair.extended = abind::abind(one.pair, array(NA, dim=c(1, num.extra,4)), along=2)
-  one_ds = abind::abind(all_data[one.group.mice,,],one.pair.extended, along=1)
 
-  one_ds.long = plyr::adply(one_ds, c(1))
-
-  one.model = glm(ltv~day +day:d+ p:d, data=one_ds.long)
-  q.fit[[unique.trt[one.group.idx]]] = one.model
-  }
-  q.fit
+update_model = function(all_data){
+  oo =optim(params, obj.fnc, all_data=all_data, method="BFGS")
+  oo$par
 }
 
-get_predictions = function(q.fit, one.pair.extended, all.action.mat, add_variability=T){
-  character.actions = get_labels(all.action.mat)
-  prediction.vec = rep(NA, length(character.actions))
+get_predictions = function(params, one.pair, all.action.mat){
+  starting.parms = runif(4)
+  names(starting.parms) = names(params)[1:4]
+  one.optim = optim(starting.parms, get_loss_inc, one.pair=one.pair, method="BFGS")
+  indiv.par = one.optim$par
+  indiv.par[['rho']]=params[['rho']]
+  prediction.vec=rep(NA, nrow(all.action.mat))
 
     for(one.group.idx in 1:nrow(all.action.mat)){
-      one.mod = q.fit[[character.actions[one.group.idx]]]
-      mu.vec = one.mod$coefficients
-      sig.mat = vcov(one.mod)
-      naidx = which(is.na(one.pair.extended[,,'ltv']))
-      non.naidx = which(is.na(one.pair.extended[,,'ltv']))
-      po = length(non.naidx)
-      pm = length(naidx)
-      mu = one.mod$coefficients
-      mu[-c(1)] = mu[-c(1)]+mu[1]
-      mu.o = one_batch[one.mouse.idx,non.naidx]
-      mut.o = mu[non.naidx]
-      mu.m = mu[naidx]
-      sig.oo = sig.mat[1:po,1:po]
-      sig.mm = sig.mat[(po+1):(pm+po), (po+1):(pm+po)]
-      sig.mo = sig.mat[(po+1):(pm+po), 1:po]
-      mu.m.cond = mu.m + sig.mo%*%solve(sig.oo)%*%(mu.o - mut.o)
-      sig.m.cond = sig.mm - sig.mo%*%solve(sig.oo)%*%t(sig.mo)
-      if(add_variability){one.prediction.vec= MASS::mvrnorm(1, mu=mu.m.cond, Sigma=sig.m.cond)}else{
-        one.prediction.vec = mu.m.cond
-      }
-      prediction.mat[one.mouse.idx, one.group.idx] = mean(one.prediction.vec[(length(mu.m.cond)-3):length(mu.m.cond)])
+      d2 = all.action.mat[one.group.idx,]
+      ltv.seq = generate_one_lm(params=indiv.par, d2=d2)
+      prediction.vec[one.group.idx] = ltv.seq[length(ltv.seq)]
     }
-  
-  colnames(prediction.mat) = character.actions
-  prediction.mat
+
+  prediction.vec
+}
+
+get.optim.plan = function(parameter_vec,maxtime, all.action.mat){
+  ftv.vec= rep(NA, nrow(all.action.mat))
+  for(j in 1:nrow(all.action.mat)){
+    one.action.vec = all.action.mat[j,]
+    one.sequence = generate_one(radiation_days=c(cumsum(one.action.vec)+15), parameter_vec=parameter_vec, maxtime=maxtime+10)[1,,'ltv']
+    ftv.vec[j] = one.sequence[maxtime]
+  }
+  best.action.vec=all.action.mat[which.min(ftv.vec),]
+  best.action.vec
 }

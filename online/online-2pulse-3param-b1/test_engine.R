@@ -31,13 +31,13 @@
 #   dimnames(all_data) = list(1:animal.idx, 1:total_time, c("ltv","d","p","day"))
 # }
 
-test_idx = 11:50
+test_idx = 10:40
 test_num=length(test_idx)
 all_test_data = all_data[test_idx,,]
 all_test_parameters = all_parameters[test_idx,]
 all_test_actions = all_actions[test_idx,]
 
-reference_days = c(1,potential_actions, 20)
+reference_days = c(1,potential_actions,20)
 optim_actions=c()
 ref.outcome.mat = matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 references=c(paste("day",reference_days),"random")
@@ -63,12 +63,16 @@ plot(density(ref.outcome.mat[,"random"]-all_test_data[, total_time,'ltv'],adjust
 colourss= rainbow(ncol(ref.outcome.mat))
 loss.means = rep(NA, length(references))
 loss.medians = rep(NA, length(references))
+loss.mins = rep(NA, length(references))
+loss.maxes=rep(NA, length(references))
 for(refday.idx in 1:ncol(ref.outcome.mat)){
   loss=ref.outcome.mat[,refday.idx]-all_test_data[, total_time,'ltv']
   lines(density(loss, adjust = adj), col=colourss[refday.idx])
   loss.mat[,refday.idx]=loss
   loss.means[refday.idx] = mean(loss)
   loss.medians[refday.idx] = median(loss)
+  loss.mins[refday.idx] = min(loss)
+  loss.maxes[refday.idx] = max(loss)
 }
 legend("topright", legend=paste(colnames(ref.outcome.mat), round(loss.means,digits=4), sep=": "), col=colourss, pch=16)
 abline(v=0, lty=2)
@@ -76,5 +80,6 @@ print(table(all_test_actions, optim_actions))
 
 colnames(loss.mat) = colnames(ref.outcome.mat)
 loss.df = stack(as.data.frame(loss.mat))
-
-beanplot::beanplot(values~ind, data=loss.df)
+result = data.frame(means=loss.means, medians=loss.medians, mins=loss.mins, maxes=loss.maxes)
+row.names(result) = colnames(ref.outcome.mat)
+print(result)

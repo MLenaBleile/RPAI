@@ -24,8 +24,8 @@ sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, wait
   ss=summary(fit)
   ss2=summary(fit2)
   out.seq=log(tail(one.sequence,20))
-  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared,ss2$coefficients[,1:2],ss2$r.squared)
-  out=one.sequence
+  out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared,out.seq)
+  #out=one.sequence
   out
 }
 
@@ -67,15 +67,15 @@ replay=function(q.fit,state_mat_mini,actions_mini,nextstate_mat_mini, rewards_mi
   inputs$actions2=actions_mini^2
   inputs$targets=targets
   
-  q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(30), threshold = 100000,
-                    stepmax = 1, rep = 1, startweights = q.fit$weights,
-                    learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
-                                                                          plus = 1.2), learningrate = NULL, lifesign = "none",
-                    lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
-                    act.fct = "logistic", linear.output = TRUE, exclude = NULL,
-                    constant.weights = NULL, likelihood = FALSE)
+  # q.fit = neuralnet(formula = targets~(.) , data=inputs, hidden = c(20,10), threshold = 100000,
+  #                   stepmax = 1, rep = 1, startweights = q.fit$weights,
+  #                   learningrate.limit = NULL, learningrate.factor = list(minus = 0.5,
+  #                                                                         plus = 1.2), learningrate = NULL, lifesign = "none",
+  #                   lifesign.step = 1000, algorithm = "rprop+", err.fct = "sse",
+  #                   act.fct = "logistic", linear.output = TRUE, exclude = NULL,
+  #                   constant.weights = NULL, likelihood = FALSE)
 
-  #q.fit = nnet::nnet(targets~., data=inputs, size=30, Wts = q.fit$wts, maxit=1)
+  q.fit = nnet::nnet(targets~(.), data=inputs, size=20, Wts = q.fit$wts, maxit=1)
   q.fit
 
 }

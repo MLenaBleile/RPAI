@@ -10,12 +10,12 @@ total_time=40
 total_days=total_time
 num_pulses=2
 num_free_pulses=num_pulses-1
-state_size = 20
+state_size = 22
 bellmann_error = rep(NA, max_epochs)
-waitime_vec=rep(7, num_pulses)
+waitime_vec=rep(9, num_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
 nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-potential_actions = 1:13
+potential_actions = 1:5
 action_size=length(potential_actions)
 actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)

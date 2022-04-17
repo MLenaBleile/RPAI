@@ -135,11 +135,11 @@ make_parameter_mat = function(num_mice){
   #parameter_mat[,'lambda'] = truncnorm(num_mice, loc=lambda,scale=.1, lwr=0, upr=1)
   #parameter_mat[,'rho'] = sample(c(0,rho), num_mice, replace=T)
   #parameter_mat[,"Tinit"] = runif(num_mice, min=1, max=3)
-  parameter_mat[,"lambda"] = truncnorm(num_mice, loc=lambda,scale=.2, lwr=0, upr=1)
+  parameter_mat[,"lambda"] = truncnorm(num_mice, loc=lambda,scale=.3, lwr=0, upr=1)
   #parameter_mat[,'BT0'] = truncnorm(num_mice, loc=BT0,scale=.001, lwr=0, upr=1)
   #parameter_mat[,"lambda"] = log(seq(1,exp(1), length.out=num_mice))
   parameter_mat[,"rho"] = truncnorm(num_mice, loc = rho, scale=.01,upr=3, lwr=0)
-  parameter_mat[,"mu"] = truncnorm(num_mice, loc = mu, scale=.00005,upr=1, lwr=0)
+  parameter_mat[,"mu"] = truncnorm(num_mice, loc = mu, scale=.000025,upr=1, lwr=0)
   #parameter_mat[,"omega1"] = truncnorm(num_mice, loc = omega1, scale=4e-6,upr=1, lwr=0.001)
   parameter_mat
 }

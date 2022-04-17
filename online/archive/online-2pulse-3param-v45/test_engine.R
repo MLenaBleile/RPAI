@@ -28,7 +28,7 @@ epoch=1
 
 q.fit=readRDS("model.rds")
 
-test_indices=1:500
+test_indices=1:50
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
 data_mat = matrix(NA, ncol=20, nrow=num_mice)

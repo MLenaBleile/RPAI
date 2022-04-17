@@ -1,4 +1,4 @@
-  setwd("~/Documents/Dissertation/RPAI/online/online-3pulse-3param-v3")
+  setwd("~/RPAI/online/archive/online-3pulse-3param-v3")
   source("data_generation_fncs.R")
   source("env_fncs.R")
   
@@ -11,10 +11,10 @@
   num_free_pulses=num_pulses-1
   state_size = 74
   bellmann_error = rep(NA, max_epochs)
-  waitime_vec=rep(8, num_pulses)
+  waitime_vec=rep(9, num_pulses)
   state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
   nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-  potential_actions = 1:12
+  potential_actions = 1:5
   action_size=length(potential_actions)
   actions = rep(NA, max_epochs)
   dones = rep(NA, max_epochs)

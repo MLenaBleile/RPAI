@@ -10,7 +10,7 @@
 # 
 # while(animal.idx<(test_num+train_num)){
 #   cat("animal:", animal.idx,"\n")
-#   parameter_mat = make_parameter_mat(5)
+#   test_parameter_mat = make_test_parameter_mat(5)
 #   one.pair = generate_one(c(), parameter_mat[1,], inc.time)
 #   
 #   num.extra = -dim(one.pair)[2] + dim(all_data)[2]
@@ -31,11 +31,11 @@
 #   dimnames(all_data) = list(1:animal.idx, 1:total_time, c("ltv","d","p","day"))
 # }
 
-test_idx=60:120
+
 test_num=length(test_idx)
 all_test_data = one_batch[test_idx,,]
 all_test_parameters = parameter_mat[test_idx,]
-all_test_actions = predicted.best[test_idx]
+all_test_actions = predicted.best[test_idx - min(test_idx)+1]
 
 reference_days = c(1,potential_actions,20)
 optim_actions=c()
@@ -47,21 +47,21 @@ for(test.id in test_idx ){
   test.id.sequential= test.id.sequential+1
   for(refday.idx in 1:length(reference_days)){
     action_mat = as.matrix(reference_days[refday.idx], ncol=num_free_pulses)
-    parameter_mat=t(as.matrix(all_test_parameters[test.id.sequential,], nrow=1, ncol=8))
-    one_ref_sequence = generate_one_batch(parameter_mat, action_mat, current.time = total_time)
+    test_parameter_mat=t(as.matrix(all_test_parameters[test.id.sequential,], nrow=1, ncol=8))
+    one_ref_sequence = generate_one_batch(test_parameter_mat, action_mat, current.time = total_time)
     ref.outcome.mat[test.id.sequential,refday.idx] = one_ref_sequence[,total_time,'ltv']
   }
   action_mat = as.matrix(sample(potential_actions,1), ncol=num_free_pulses)
-  parameter_mat=t(as.matrix(all_test_parameters[test.id.sequential,], nrow=1, ncol=8))
-  one_ref_sequence = generate_one_batch(parameter_mat, action_mat, current.time = total_time)
+  test_parameter_mat=t(as.matrix(all_test_parameters[test.id.sequential,], nrow=1, ncol=8))
+  one_ref_sequence = generate_one_batch(test_parameter_mat, action_mat, current.time = total_time)
   ref.outcome.mat[test.id.sequential,'random'] = one_ref_sequence[,total_time,'ltv']
-  optim_actions=c(optim_actions, get.optim.plan(parameter_mat[1,], maxtime=total_time, all.action.mat = all.action.mat))
+  optim_actions=c(optim_actions, get.optim.plan(test_parameter_mat[1,], maxtime=total_time, all.action.mat = all.action.mat))
 }
 
 
 adj=1
 loss.mat = matrix(NA, nrow=test_num, ncol=ncol(ref.outcome.mat))
-plot(density(ref.outcome.mat[,"random"]-all_test_data[, total_time,'ltv'],adjust=adj),xlim=c(-1,5),main="2 pulse performance", type="n", xlab="ltv reference-ltv agent")
+plot(density(ref.outcome.mat[,"random"]-all_test_data[, total_time,'ltv'],adjust=adj),xlim=c(-.5,1),main="2 pulse performance", type="n", xlab="ltv reference-ltv agent")
 colourss= rainbow(ncol(ref.outcome.mat))
 loss.means = rep(NA, length(references))
 loss.medians = rep(NA, length(references))

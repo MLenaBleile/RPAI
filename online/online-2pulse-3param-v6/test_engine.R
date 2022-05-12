@@ -1,26 +1,32 @@
-# setwd("~/RPAI/online/online-2pulse-3param-v6")
-# source("data_generation_fncs.R")
-# source("env_fncs_2pulse.R")
-# 
-# set.seed(1998)
-# max_epochs=700
-# parameter_mat = make_parameter_mat(max_epochs+500)
-# 
-# total_time=40
-# total_days=total_time
-# num_pulses=2
-# num_free_pulses=num_pulses-1
-# state_size = 20
-# bellmann_error = rep(NA, max_epochs)
-# waitime_vec=rep(7, num_pulses)
-# state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
-# nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-# potential_actions = 1:13
-# action_size=length(potential_actions)
-# actions = rep(NA, max_epochs)
-# dones = rep(NA, max_epochs)
-# 
-# q.fit=readRDS("model.rds")
+setwd("~/RPAI/online/online-2pulse-3param-v6")
+source("data_generation_fncs.R")
+source("env_fncs_2pulse.R")
+
+source("online_engine.R")
+set.seed(1998)
+max_epochs=1000
+parameter_mat = make_parameter_mat(max_epochs+500)
+
+total_time=40
+total_days=total_time
+num_pulses=2
+num_free_pulses=num_pulses-1
+state_size = 31
+bellmann_error = rep(NA, max_epochs)
+waitime_vec=rep(9, num_pulses)
+state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
+nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
+potential_actions = 1:5
+action_size=length(potential_actions)
+actions = rep(NA, max_epochs)
+dones = rep(NA, max_epochs)
+eps=1
+eps.vec=c(eps)
+eps_decay=1
+epsilon_min=.001
+minibatch_size=100
+epoch=1
+q.fit=readRDS("model.rds")
 
 test_indices=1:50
 num_mice = length(test_indices)

@@ -35,7 +35,7 @@ agent.action.mat = matrix(NA, nrow=num_mice, ncol=num_free_pulses)
 
 
 agent.outcome.vec=rep(NA, test_num)
-refdays = c(10,14,20)
+refdays = c(1,10,14,20)
 ref.outcome.mat = matrix(NA, nrow=num_mice, ncol=length(refdays)+1)
 references = c(paste("day", refdays),"random")
 colnames(ref.outcome.mat) = references
@@ -88,4 +88,4 @@ for(ref.idx in 1:(ncol(ref.outcome.mat))){
 }
 #legend("topright", legend=paste(c(paste("day", refdays),"random"), round(effect.sizes, digits=3), sep=": "), pch=16, col=colors)
 abline(v=0, lty=2)
-mean(-agent.outcome.vec+ref.outcome.mat[,1])
+mean(exp(agent.outcome.vec-ref.outcome.mat[,2]))

@@ -10,6 +10,7 @@ references=c(paste("day", reference_days),"random")
 colnames(reference.outcomes) = references
 selected_actions=c()
 
+
 for(mouse in 1:num_mice){
   parameter_vec= parameter_mat[mouse,]
   one.reference = generate_one_counterfactualset(parameter_mat[mouse,],total_days = total_days+5, wait_time = 0, potential_actions = 1:20)
@@ -33,36 +34,42 @@ for(mouse in 1:num_mice){
   agent.outcomes[mouse] = log(one.reference[one.action,total_days])
 }
 
+overall.min = min(c(agent.outcomes, as.numeric(reference.outcomes)))
+overall.max = max(c(agent.outcomes, as.numeric(reference.outcomes)))
 result = matrix(NA, nrow=ncol(reference.outcomes), ncol=4)
 colnames(result) = c("mean","median","max", "min")
 rownames(result) = colnames(reference.outcomes)
+perc.better=c()
+perc.asgoodas =c()
 for(jj in 1:length(references)){
-  loss = reference.outcomes[,jj]-agent.outcomes
-  result[jj,] = c(mean(loss), median(loss), min(loss), max(loss))
-}
+  loss = agent.outcomes- reference.outcomes[,jj] 
+  result[jj,] = c(mean(exp(loss)), median(exp(loss)), min(exp(loss)), max(exp(loss)))
+  perc.better[jj] = sum(loss<0)/sum(loss!=0)
+  perc.asgoodas[jj] = sum(loss<=0)/length(loss)
+  }
+
+print(result)
 
 
-
-
-deltamodel = agent.outcomes-true.mins
-delta15 =reference.outcomes[,1]-true.mins
-colors = c("red","blue","orange","purple")
-plot(density(delta15-deltamodel), xlab="fixed personalization loss - agent personalization loss",type="n",xlim=c(-.2,.5), main="2 pulse performance", col="red", ylim=c(0,60))
-for(refday.idx in 1:3){
-  deltaref = reference.outcomes[,refday.idx]-true.mins
-  lines(density(deltaref - deltamodel), col=colors[refday.idx])
-  test=t.test(deltaref-deltamodel)
-  print(test)
-  cohen = mean(deltaref-deltamodel)
-  cat("effect size: ", cohen)
-  cat("minimum:",min(deltaref-deltamodel))
-  effect.sizes[refday.idx] = cohen
-  #cat(deltamodel[deltamodel>deltaref])
-}
-delta.diff.random = abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel
-effect.sizes[4] = mean(delta.diff.random)/sd(delta.diff.random)
-lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel), col="purple")
-legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": "), pch=16, col=c(colors, "purple"))
-abline(v=0, lty=2)
+# deltamodel = agent.outcomes - reference.outcomes[,'day 1']
+# 
+# colors = c("red","blue","orange","purple")
+# plot(density(delta15-deltamodel), xlab="fixed personalization loss - agent personalization loss",type="n",xlim=c(-.2,.5), main="2 pulse performance", col="red", ylim=c(0,60))
+# for(refday.idx in 1:ncol(reference.outcomes)){
+#   deltaref = reference.outcomes[,refday.idx]-reference.outcomes[,'day 1']
+#   lines(density(exp(deltaref - deltamodel)), col=colors[refday.idx])
+#   test=t.test(deltaref-deltamodel)
+#   print(test)
+#   cohen = mean(deltaref-deltamodel)
+#   cat("effect size: ", cohen)
+#   cat("minimum:",min(deltaref-deltamodel))
+#   effect.sizes[refday.idx] = cohen
+#   #cat(deltamodel[deltamodel>deltaref])
+# }
+# #delta.diff.random = abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel
+# names(effect.sizes) = colnames(reference.outcomes)
+# #lines(density(abs(optimal_actions-sample(7:17, num_mice, replace=T)) - deltamodel), col="purple")
+# legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": "), pch=16, col=c(colors, "purple"))
+# abline(v=0, lty=2)
 
 table(selected_actions, optimal_actions)

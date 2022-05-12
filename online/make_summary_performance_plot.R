@@ -1,7 +1,8 @@
 
 x11()
 par(mfrow=c(2,2))
-setwd("~/RPAI/online/online-2pulse-3param-v6")
+setwd("~/RPAI/online/online-2pulse-working")
+source("online_engine.R")
 source("test_engine.R")
 setwd("~/RPAI/online/online-3pulse-3param-v7")
 source("test_engine_multi.R")

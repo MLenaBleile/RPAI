@@ -1,4 +1,4 @@
-setwd("~/RPAI/online/online-4pulse-3param-b1")
+setwd("~/RPAI/online/online-general-nlm")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 source("lm_fncs.R")
@@ -7,17 +7,17 @@ library(glmnet)
 
 set.seed(1998)
 num_free_pulses=1
-total_time = 40
+total_time = 40 + 20*(num_free_pulses-1)
 wait_time=9
 potential_actions = 1:5+wait_time
-train_num=100
-adapt_num=300
+train_num=10/num_free_pulses
+adapt_num=100/num_free_pulses
 test_num = 50
 train_idx=1:(train_num*num_free_pulses)
 adapt_idx=1:(adapt_num*num_free_pulses) + max(train_idx)
 nonadapt_idx=1:(test_num*num_free_pulses) + max(adapt_idx)
-test_idx = tail(c(adapt_idx,nonadapt_idx),test_num*num_free_pulses)
-total_mice=train_num+adapt_num+test_num
+test_idx = tail(c(adapt_idx),test_num*num_free_pulses)
+total_mice=train_num+adapt_num
 num_pc = 7
 inc.time=wait_time+15-2
 all.action.mat = make_potential_action_mat(potential_actions = potential_actions, num_free_pulses = num_free_pulses)
@@ -75,7 +75,7 @@ actions = as.numeric(t(act.mat[1:train_num,]))
 in.data$act = as.character(all.pca.data[,'action'])[train_idx]
 ltv.vec=rep(one_batch[1:train_num,total_time,'ltv'], num_free_pulses)
 in.data$ltv=ltv.vec
-fit2 = lm(ltv~(.)^3, data=in.data[train_idx,])
+fit = lm(ltv~(.)^3, data=in.data[train_idx,])
 #fit2 = nnet::nnet(ltv~(.)^3, data=in.data[train_idx,], size=5, linout=T)
 
 predicted.best = c()

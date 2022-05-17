@@ -41,8 +41,10 @@ for(mouse in 1:test_num){
   estimated.par = optimize.model(one.sequence)
   names(estimated.par) = c("mu","lambda","rho")
   est.par.mat[mouse,] = estimated.par
+  if(mouse>1){weight.factor=apply(est.par.mat,c(2),sd, na.rm=T)*c(150,3,5)}else{weight.factor=1}
+  predictive.params = estimated.par*weight.factor+colMeans(est.par.mat, na.rm=T)*(1-weight.factor)
   #print(estimated.par)
-  one.action = get.optim.plan(parameter_vec=estimated.par,maxtime=maxtime, all.action.mat = all.action.mat)
+  one.action = get.optim.plan(parameter_vec=predictive.params,maxtime=maxtime, all.action.mat = all.action.mat)
   selected_actions[mouse,] = one.action
   one.agent.treated.sequence = generate_one(cumsum(one.action)+15, parameter_vec=parameter_vec, maxtime=maxtime+10)$ltv
   agent.outcomes[mouse] = log(one.agent.treated.sequence[maxtime])

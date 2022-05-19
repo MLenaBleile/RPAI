@@ -104,9 +104,9 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
   BTn_vec[1]<-para_set['BT0','best']
   dose_vec=rep(0, maxtime)
   dose_vec[15] = 10
-  dose_vec[radiation_days] = 10
+  dose_vec[radiation_days[radiation_days>0]] = 10
   #print(radiation_days)
-  pd1_vec = generate_pd1_stacked(radiation_days, totaltime=maxtime)
+  pd1_vec = generate_pd1_stacked(radiation_days[radiation_days>0], totaltime=maxtime)
 
 
   Tn_vec[1]<- para_set["Tinit","best"]
@@ -123,12 +123,20 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
     Tn_vec[i+1]<-Tn_update(SnT=SnT_vec[i],Tn=Tn_vec[i],mu=para_set['mu','best'],Zn=Zn_vec[i])
   }
   #print(Tn_vec)
-  out.list = list(Tn_vec, dose_vec, pd1_vec)
+  #print(Tn_vec)
+  out.list = list(log(Tn_vec), dose_vec, pd1_vec)
+  out.array =array(data=NA, dim=c(1, length(Tn_vec),4))
+  dimnames(out.array) = list(NULL, NULL, c("ltv","d","p",'day'))
+  out.array[1,,'ltv'] = log(Tn_vec)
+  out.array[1,,'d'] =cumsum(dose_vec/10)
+  out.array[1,,'p'] = pd1_vec[1:length(Tn_vec)]
+  out.array[1,,'day'] = 1:length(Tn_vec)
   names(out.list) = c("ltv","d","p")
-  return(out.list)
+  return(out.array)
 }
 
 make_parameter_mat = function(num_mice){
+  para_set = make_default_para_set()
   mu=0.21601
   rho = 1.707
   lambda = 0.30441
@@ -149,14 +157,19 @@ make_parameter_mat = function(num_mice){
   parameter_mat[,"rho"] = truncnorm(num_mice, loc = rho, scale=.01,upr=3, lwr=0)
   parameter_mat[,"mu"] = truncnorm(num_mice, loc = mu, scale=.033,upr=1, lwr=0)
   #parameter_mat[,"omega1"] = truncnorm(num_mice, loc = omega1, scale=4e-6,upr=1, lwr=0.001)
-  parameter_mat
+  other_params = setdiff(rownames(para_set), colnames(parameter_mat))
+  other_param_mat = matrix(rep(para_set[other_params,'best'], num_mice), ncol=length(other_params), byrow=T)
+  colnames(other_param_mat)=other_params
+  cbind(parameter_mat, other_param_mat)
 }
 
-generate_one_counterfactualset = function(parameter_vec, total_days, potential_actions, wait_time){
-  counterfactual_rtdays = 15+potential_actions+wait_time
-  counterfactualset = matrix(NA, nrow=length(potential_actions), ncol=total_days)
-  for(one.counterfactual.idx in 1:nrow(counterfactualset)){
-    counterfactualset[one.counterfactual.idx,] = generate_one(radiation_days = c(counterfactual_rtdays[one.counterfactual.idx]),parameter_vec = parameter_vec, maxtime = total_days)$ltv
+generate_one_counterfactualset = function(parameter_vec, total_days, potential_actions){
+  counterfactual_rtdays = 15+potential_actions
+  counterfactualset.pairs = array(dim=c(length(potential_actions), total_days,4))
+  
+  dimnames(counterfactualset.pairs) = list(NULL, NULL, c("ltv","d","p",'day'))
+  for(one.counterfactual.idx in 1:length(potential_actions)){
+    counterfactualset.pairs[one.counterfactual.idx,,] = generate_one(radiation_days = c(counterfactual_rtdays[one.counterfactual.idx]),parameter_vec = parameter_vec, maxtime = total_days)
   }
-  counterfactualset
+  counterfactualset.pairs
 }

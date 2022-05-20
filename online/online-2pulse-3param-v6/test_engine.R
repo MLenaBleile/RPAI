@@ -2,7 +2,7 @@ setwd("~/RPAI/online/online-2pulse-3param-v6")
 source("data_generation_fncs.R")
 source("env_fncs_2pulse.R")
 
-source("online_engine.R")
+#source("online_engine.R")
 set.seed(1998)
 max_epochs=1000
 parameter_mat = make_parameter_mat(max_epochs+500)
@@ -26,7 +26,8 @@ eps_decay=1
 epsilon_min=.001
 minibatch_size=100
 epoch=1
-q.fit=readRDS("model.rds")
+source("online_engine.R")
+#q.fit=readRDS("model.rds")
 
 test_indices=1:50
 num_mice = length(test_indices)
@@ -56,7 +57,7 @@ for(mouse in 1:num_mice){
   reference.outcomes[mouse,'random'] = log(one.reference[one.random.action, total_days])
   parameter_vec=parameter_mat[mouse+501,]
   one.sequence = generate_one(radiation_days=c(),parameter_vec=parameter_vec,maxtime = current.time)
-  one.state=sequence_to_state(one.sequence = as.numeric(one.sequence))
+  one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), num_free_pulses = num_free_pulses, action.vec=c())
   one.action = get_action(q.fit,one.state, potential_actions = potential_actions)+waitime_vec[1]
   selected_actions=c(selected_actions, one.action)
   one.agent.treated.sequence = generate_one(one.action+15, parameter_vec=parameter_vec, maxtime=total_days)
@@ -67,11 +68,12 @@ for(mouse in 1:num_mice){
 
 
 colors = rainbow(length(references))
-plot(density(delta15-deltamodel), xlab="final ltv reference - final ltv agent",type="n",xlim=c(-.2,.5), main="2 pulse performance", col="red", ylim=c(0,25))
+deltaref = reference.outcomes[,1]
+plot(density(deltaref-agent.outcomes), xlab="final ltv reference - final ltv agent",type="n",xlim=c(-.2,.5), main="2 pulse performance", col="red", ylim=c(0,25))
 for(refday.idx in 1:length(references)){
-  deltaref = reference.outcomes[,refday.idx]-true.mins
-  lines(density(deltaref - deltamodel), col=colors[refday.idx])
-  cohen = mean(deltaref-deltamodel)
+  deltaref = reference.outcomes[,refday.idx]
+  lines(density(deltaref - agent.outcomes), col=colors[refday.idx])
+  cohen = mean(deltaref-agent.outcomes)
   cat("mean: ", cohen,"\n")
   #cat("minimum:",min(deltaref-deltamodel),"\n")
   #cat("maximum:",max(deltaref-deltamodel),"\n")

@@ -36,16 +36,17 @@ for(mouse in 1:num_mice){
 
 overall.min = min(c(agent.outcomes, as.numeric(reference.outcomes)))
 overall.max = max(c(agent.outcomes, as.numeric(reference.outcomes)))
-result = matrix(NA, nrow=ncol(reference.outcomes), ncol=4)
-colnames(result) = c("mean","median","max", "min")
+result = matrix(NA, nrow=ncol(reference.outcomes), ncol=5)
+colnames(result) = c("mean","median","midpoint", "perc better", "perc asgoodas")
 rownames(result) = colnames(reference.outcomes)
 perc.better=c()
 perc.asgoodas =c()
 for(jj in 1:length(references)){
-  loss = agent.outcomes- reference.outcomes[,jj] 
-  result[jj,] = c(mean(exp(loss)), median(exp(loss)), min(exp(loss)), max(exp(loss)))
-  perc.better[jj] = sum(loss<0)/sum(loss!=0)
-  perc.asgoodas[jj] = sum(loss<=0)/length(loss)
+  loss = -agent.outcomes+ reference.outcomes[,jj] 
+  perc.better = sum(loss>0)/sum(loss!=0)
+  perc.asgoodas = sum(loss>=0)/length(loss)
+  result[jj,] = c(mean(loss), median(loss), max(loss)-min(loss), perc.better, perc.asgoodas)
+  
   }
 
 print(result)

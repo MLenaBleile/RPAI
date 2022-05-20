@@ -4,7 +4,7 @@ source("env_fncs_2pulse.R")
 set.seed(1998)
 calibration_num=5
 test_num=calibration_num+45
-recompute_marginals=F
+recompute_marginals=T
 
 maxtime = 40
 num_free_pulses=1
@@ -23,7 +23,7 @@ reference.outcomes=matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 colnames(reference.outcomes) = c(paste("day",reference_days),'random')
 selected_actions=matrix(NA, nrow=test_num, ncol=num_free_pulses)
 ###parameters that we don't assume to be known
-param_names = c("mu","lambda","rho","phi","alpha1","gam",'tau','omega1','omega2')
+param_names = c("mu","lambda","rho","phi","alpha1","gam",'tau','omega1','omega2','alpha','beta')
 est.par.mat = matrix(NA, nrow=test_num, ncol=length(param_names))
 colnames(est.par.mat) = param_names
 predictive.param.mat = est.par.mat
@@ -117,8 +117,8 @@ reference_actions = c(reference_days, "random")
 effect.sizes = rep(NA, 5)
 
 #x11()
-results = matrix(NA, nrow=ncol(reference.outcomes),ncol=3)
-colnames(results) = c("mean","median", "midpoint")
+results = matrix(NA, nrow=ncol(reference.outcomes),ncol=5)
+colnames(results) = c("mean","median", "midpoint", "prop better","prop asgoodas")
 rownames(results) = colnames(reference.outcomes)
 par(mfrow=c(2,2))
 colors = c("red","blue","orange","purple")
@@ -128,7 +128,7 @@ for(refday.idx in 1:ncol(reference.outcomes)){
   #lines(density(deltaref[!is.na(deltaref)] - agent.outcomes[!is.na(deltaref)]), col=colors[refday.idx])
   loss=deltaref-agent.outcomes
   loss=loss[-c(1:calibration_num)]
-  results[refday.idx,] = c(mean(loss, na.rm=T), median(loss, na.rm=T), max(loss)-min(loss))
+  results[refday.idx,] = c(mean(loss, na.rm=T), median(loss, na.rm=T), max(loss)-min(loss), sum(loss>0)/sum(loss!=0),sum(loss>=0)/length(loss) )
   #cat(agent.outcomes[agent.outcomes>deltaref])
 }
 

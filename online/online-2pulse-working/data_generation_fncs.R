@@ -85,6 +85,36 @@ Zn = function(omega1, omega2, TTn, BTn, p1){
 Tn_update = function(SnT, Tn, mu, Zn){
   SnT*Tn*exp(mu-Zn)
 }
+loglinear.growth=function(t, beta0, beta1){
+  exp(beta0+beta1*t)
+}
+
+tumor.decay = function(tt, dd, gg){
+  exp(-gg*(tt-dd))
+}
+
+generate_one_sumexp = Vectorize(function(radiation_days, parameter_vec, maxtime){
+  radiation_days=radiation_days[radiation_days>15]
+  d0=15
+  if(length(radiation_days)>0){
+  d1 = radiation_days[1]}else{d1=maxtime+1}
+  rho1 = parameter_vec['rho1'] 
+  prop.factor = -rho1*parameter_vec['prop.1']*((sqrt(d1)-parameter_vec['prop.2']*sqrt(rho1))^2)
+  beta0 = parameter_vec['beta0'] 
+  beta1 = parameter_vec['beta1'] 
+  gg = parameter_vec['gg']
+  rho2=boot::inv.logit(prop.factor)
+  first.decay.term = rho1*loglinear.growth(d1, beta0, beta1)*tumor.decay(maxtime, 15, gg)
+  if(maxtime>d1){
+    
+    fct.mean.exp.1 = first.decay.term + (1-rho1)*loglinear.growth(d1, beta0, beta1)
+    fct.mean.exp = rho2*fct.mean.exp.1*tumor.decay(maxtime,d1,gg)+(1-rho2)*(first.decay.term + (1-rho1)*loglinear.growth(maxtime, beta0, beta1))
+    
+  }else{
+    fct.mean.exp = first.decay.term + (1-rho1)*loglinear.growth(maxtime, beta0, beta1)
+  }
+  log(fct.mean.exp)
+}, vectorize.args="maxtime")
 
 
 generate_one = function(radiation_days, parameter_vec, maxtime){

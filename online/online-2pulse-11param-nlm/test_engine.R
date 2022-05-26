@@ -1,10 +1,10 @@
-setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-working")
+setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-11param-nlm")
 source("data_generation_fncs.R")
 source("env_fncs_2pulse.R")
 set.seed(1998)
 calibration_num=5
 test_num=calibration_num+45
-recompute_marginals=T
+recompute_marginals=F
 
 maxtime = 40
 num_free_pulses=1
@@ -38,7 +38,9 @@ all.pairs = array(dim=c(test_num,maxtime,4))
 dimnames(all.pairs) = list(NULL, NULL, c("ltv","d","p",'day'))
 names(all.pairs) = c('animal','time', 'feature')
 
-if(recompute_marginals){overall.estimate.mat = est.par.mat}else{}
+if(recompute_marginals){overall.estimate.mat = est.par.mat}else{
+  overall.estimate.mat = read.csv("overall.estimate.mat.csv")[,-c(1)]
+}
 
 all.counterfactual.pairs = array(dim=c(0,maxtime,4))
 
@@ -88,7 +90,7 @@ for(mouse in 1:test_num){
   #names(weight.factor) = param_names
   weight.factors[mouse,] = weight.factor[random_params]
   weight.factor.random=weight.factor[random_params]
-  fixed_param_vec=colMeans(overall.estimate.mat[,fixed_param_vec], na.rm=T)
+  fixed_param_vec=colMeans(overall.estimate.mat[,fixed_params], na.rm=T)
   reestimated.par = optimize.model(pair.set=inc.pair, param_names = random_params,fixed_param_vec=fixed_param_vec)
   est.par.mat[mouse,random_params] = reestimated.par[random_params]
   predictive.params[random_params] = reestimated.par[random_params]*weight.factor.random+colMeans(est.par.mat[,random_params], na.rm=T)*(1-weight.factor.random)

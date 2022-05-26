@@ -1,4 +1,4 @@
-setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-working")
+setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-9param-nlm")
 source("data_generation_fncs.R")
 source("env_fncs_2pulse.R")
 set.seed(1998)

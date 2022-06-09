@@ -2,6 +2,28 @@ make_potential_action_mat = function(potential_actions, num_free_pulses){
   expand.grid(rep(list(potential_actions), num_free_pulses))
 }
 
+get.optim.plan = function(fit1, mouse, potential_actions, maxtime){
+  predicted.outcomes=numeric(length(potential_actions))
+  names(predicted.outcomes) = as.character(potential_actions)
+  for(action in potential_actions){
+    one.cf.input = matrix(c(mouse, maxtime, action), nrow = 1)
+    colnames(one.cf.input) = c("animal", "time", "d1")
+    predicted.outcomes[as.character(action)]=posterior_predict(fit1, newdata=as.data.frame(one.cf.input))
+    
+  }
+  potential_actions[which.min(predicted.outcomes)]
+}
+
+get.chg.idx = function(x){
+  chgpts=which(x[-1] != x[-length(x)])+1
+  d1.pt=chgpts[chgpts!=15]
+  if(length(d1.pt)==0){
+    ##assign random action (or Infty) to the incomplete sequence
+    d1.pt=80
+  }
+  d1.pt
+}
+
 make_default_para_set = function(){
   para_set = matrix(NA, nrow=27, ncol=3)
   param_names = c("alpha","beta","omega1","omega2","phi","lambda","rho","BT0","alpha1","TT0","psi","mu","gam","tau")
@@ -19,7 +41,7 @@ make_default_para_set = function(){
   #para_set[c("D0","dq"),"best"] = c(1.452,8.784)
   para_set
 }
-truncnorm = function(samples, loc=0, scale=1, upr=Inf, lwr=-Inf){
+truncnorm = Vectorize(function(samples, loc=0, scale=1, upr=Inf, lwr=-Inf){
   proposed = rnorm(samples*2, mean=loc,sd=sqrt(scale))
   if(is.nan(proposed[1])){
     cat("scale:",sqrt(scale), "loc:",loc)
@@ -31,7 +53,7 @@ truncnorm = function(samples, loc=0, scale=1, upr=Inf, lwr=-Inf){
     proposed=c(proposed, new_proposed)
   }
   proposed[1:samples]
-}
+}, vectorize.args = c("upr", "lwr","loc","scale", "samples"))
 
 
 generate_pd1_stacked = function(radiation_day, totaltime,pd1_times = c(-2,0,2,4)){
@@ -93,19 +115,48 @@ tumor.decay = Vectorize(function(tt, dd, gg){
   exp(-gg*(tt-dd))
 }, vectorize.args="tt")
 
-generate_one_sumexp = function(radiation_days, parameter_vec, maxtime){
+library(boot)
+get.mean.sumexp = Vectorize(function(rho1,theta1, beta0,beta1,gg, d1,current.time){
+  scale.fact=1
+  d0=sqrt(15)/scale.fact
+  d1 = sqrt(d1)/scale.fact
+  rhoo = rho1
+  beta1 = beta1
+  rho2=rho1*(1- exp(-abs(theta1)*(d1-d0)))
+  gg=abs(gg)
+  #print(length(d1))
+  #print(rho2)
+  time.vec=sqrt(1:maxtime)/scale.fact
+  first.decay.term = rhoo*exp(beta0+beta1*d0)*exp(-gg*(time.vec-d0))*(time.vec>d0)
+  fct.mean.exp = first.decay.term + (1-rhoo*(time.vec>d0))*exp(beta0+beta1*time.vec)
+  if(maxtime>d1){
+    fct.mean.exp.1=fct.mean.exp
+    fct.mean.exp = rho2*(time.vec>d1)*fct.mean.exp.1*exp(-gg*(time.vec-d1))+(1-rho2*(time.vec>d1))*fct.mean.exp.1
+    
+  }else{
+    
+  }
+  out=log(fct.mean.exp)[maxtime]
+  return(as.numeric(out))
+}, vectorize.args = c("rho1","theta1","beta0","beta1","gg", "d1","current.time"))
+
+generate_one_sumexp = function(radiation_days, parameter_vec, maxtime, add.measurement.noise=F){
   radiation_days=radiation_days[radiation_days>15]
-  d0=15
+  scale.fact=1
+  d0=sqrt(15)/scale.fact
   if(length(radiation_days)>0){
-    d1 = radiation_days[1]}else{d1=maxtime+1}
-  rho1 = parameter_vec['rho1'] 
-  beta0 = parameter_vec['beta0'] 
+    d1 = sqrt(radiation_days[1])/scale.fact
+    }else{d1=sqrt(maxtime+1)/scale.fact}
+  rhoo = parameter_vec['rho1']
+  #*(1-min(c(exp(-parameter_vec['theta1']*(d0)-(0.3*parameter_vec['beta0']*d0)^2 ),1)))
+  beta0 = parameter_vec['beta0']
   beta1 = parameter_vec['beta1'] 
-  gg = parameter_vec['gg']
-  rho2=rho1*(1-exp(-parameter_vec['theta']*(d1-d0)))
-  time.vec=1:maxtime
-  first.decay.term = rho1*exp(beta0+beta1*d0)*exp(-gg*(time.vec-d0))*(time.vec>d0)
-  fct.mean.exp = first.decay.term + (1-rho1*(time.vec>d0))*loglinear.growth(time.vec, beta0, beta1)
+  gg = abs(parameter_vec['gg'])
+  rho2=parameter_vec['rho1']*(1-exp(-abs(parameter_vec['theta1'])*(d1-d0)))
+  #print(rho2)
+  time.vec=sqrt(1:maxtime)/scale.fact
+  first.decay.term = rhoo*exp(beta0+beta1*d0)*exp(-gg*(time.vec-d0))*(time.vec>d0)
+  fct.mean.exp = first.decay.term + (1-rhoo*(time.vec>d0))*exp(beta0+beta1*time.vec)
   if(maxtime>d1){
     fct.mean.exp.1=fct.mean.exp
     fct.mean.exp = rho2*(time.vec>d1)*fct.mean.exp.1*exp(-gg*(time.vec-d1))+(1-rho2*(time.vec>d1))*fct.mean.exp.1
@@ -115,18 +166,31 @@ generate_one_sumexp = function(radiation_days, parameter_vec, maxtime){
   }
   #log(fct.mean.exp)
   dose.vec = rep(0, length(fct.mean.exp))
-  dose.vec[unique(c(15, radiation_days))] = 1
+  dose.vec[unique(c(15, radiation_days[radiation_days<maxtime]))] = 1
   out.array =array(data=NA, dim=c(1, length(fct.mean.exp),4))
   dimnames(out.array) = list(NULL, NULL, c("ltv","d","p",'day'))
+  
+  if(add.measurement.noise){
+    noise.vec=truncnorm(1, lwr = -fct.mean.exp+.01, scale=800)
+    fct.mean.exp =fct.mean.exp
+  }
   out.array[1,,'ltv'] = log(fct.mean.exp)
+  if(is.nan(sum(log(fct.mean.exp)))){
+    print(parameter_vec)
+    print(d1)
+  }
+  #print(dim(out.array))
+  #print(length(cumsum(dose.vec)))
   out.array[1,,'d'] =cumsum(dose.vec)
   out.array[1,,'p'] = 0
   out.array[1,,'day'] = 1:maxtime
-  out.array
+  out.array 
 }
 
 
-generate_one = function(radiation_days, parameter_vec, maxtime){
+generate_one = function(radiation_days, parameter_vec, maxtime, gen.mod, add.measurement.noise=F){
+  
+  if(gen.mod =="recursive"){
   #print(rnorm(1, mean=0,sd=sqrt(init_variance)))
   para_set = make_default_para_set()
   para_set[names(parameter_vec),"best"] = as.numeric(parameter_vec)
@@ -169,12 +233,16 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
   out.array[1,,'ltv'] = log(Tn_vec)
   out.array[1,,'d'] =cumsum(dose_vec/10)
   out.array[1,,'p'] = pd1_vec[1:length(Tn_vec)]
-  out.array[1,,'day'] = 1:length(Tn_vec)
-  names(out.list) = c("ltv","d","p")
+  out.array[1,,'day'] = 1:length(Tn_vec)}else{
+    
+    out.array = generate_one_sumexp(radiation_days, parameter_vec, maxtime, add.measurement.noise=add.measurement.noise)
+  }
+  #names(out.list) = c("ltv","d","p")
   return(out.array)
 }
 
-make_parameter_mat = function(num_mice){
+make_parameter_mat = function(num_mice, gen.mod){
+  if(gen.mod=="recursive"){
   para_set = make_default_para_set()
   mu=0.21601
   rho = 1.707
@@ -199,16 +267,34 @@ make_parameter_mat = function(num_mice){
   other_params = setdiff(rownames(para_set), colnames(parameter_mat))
   other_param_mat = matrix(rep(para_set[other_params,'best'], num_mice), ncol=length(other_params), byrow=T)
   colnames(other_param_mat)=other_params
-  cbind(parameter_mat, other_param_mat)
+  out.param.mat = cbind(parameter_mat, other_param_mat)}else{
+    param_names = param_names=c("rho1", "theta1", "beta0","beta1","gg")
+    minibatch_parameters = matrix(nrow=test_num, ncol=length(param_names))
+    colnames(minibatch_parameters) = param_names
+    true.param.gen = matrix(nrow=length(param_names), ncol=3)
+    colnames(true.param.gen) = c("m","var",'upper')
+    rownames(true.param.gen)=param_names
+    true.param.gen[,'m'] = c(.5,.15,.1,.516,.2)
+    true.param.gen[,'var'] =c(0,0,0,0,1)
+    true.param.gen[,'upper'] = c(1,1,1,1,1)
+    for(pp in param_names){
+      minibatch_parameters[,pp] = truncnorm(test_num, loc = true.param.gen[pp,'m'], scale=true.param.gen[pp,'var'], lwr=0, upr=true.param.gen[pp,'upper'])
+    }
+    out.param.mat = minibatch_parameters
+    #out.param.mat[,'theta1'] = logit(out.param.mat[,'theta1'])
+  }
+  
+  out.param.mat
 }
 
-generate_one_counterfactualset = function(parameter_vec, total_days, potential_actions){
+generate_one_counterfactualset = function(parameter_vec, total_days, potential_actions, gen.mod){
   counterfactual_rtdays = 15+potential_actions
   counterfactualset.pairs = array(dim=c(length(potential_actions), total_days,4))
   
   dimnames(counterfactualset.pairs) = list(NULL, NULL, c("ltv","d","p",'day'))
   for(one.counterfactual.idx in 1:length(potential_actions)){
-    counterfactualset.pairs[one.counterfactual.idx,,] = generate_one_sumexp(radiation_days = c(counterfactual_rtdays[one.counterfactual.idx]),parameter_vec = parameter_vec, maxtime = total_days)
-  }
+    counterfactualset.pairs[one.counterfactual.idx,,] = generate_one(radiation_days = c(counterfactual_rtdays[one.counterfactual.idx]),parameter_vec = parameter_vec, maxtime = total_days, gen.mod=gen.mod)
+  
+    }
   counterfactualset.pairs
 }

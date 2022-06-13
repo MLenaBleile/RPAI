@@ -9,19 +9,18 @@ get_loss =function(one.pair, params){
   d2 = min(which(one.pair[,'d']==2))
   days = one.pair[,'day']
   one.sim.sequence = generate_one_lm(params, d2=d2, days = days)
-  one.sim.fit = lm(one.sim.sequence~days*one.pair[,'d'])
-  one.seq.fit = lm(one.pair[,'ltv']~days*one.pair[,'d'])
+  one.sim.fit = lm(one.sim.sequence~days*one.pair[,'d']*one.pair[,'p'])
+  one.seq.fit = lm(one.pair[,'ltv']~days*one.pair[,'d']*one.pair[,'p'])
   mean((one.seq.fit$coefficients-one.sim.fit$coefficients)^2)
 }
 
 get_rteffects = function(one.pair, num_free_pulses, total_time){
   #d2 = min(which(one.pair[,'d']==2))
-  print(one.pair[,'ltv'])
-  days = sqrt(one.pair[,'day'])
+  days = one.pair[,'day']
   dose_norm = logit((one.pair[,'d']+.5)/(num_free_pulses+2))
-  one.seq.fit = lm(one.pair[,'ltv']~days*dose_norm)
+  one.seq.fit = lm(one.pair[,'ltv']~days*dose_norm*one.pair[,'p']-1)
   ss=summary(one.seq.fit)
-  #day.rescale = invlogit(max(one.pair[,'day'])/total_time)
+  day.rescale = invlogit(max(one.pair[,'day'])/total_time)
 
   out.vec=c(one.seq.fit$coefficients, summary(one.seq.fit)$r.squared)
   names(out.vec)[length(out.vec)] = 'rsq'
@@ -31,8 +30,8 @@ get_rteffects = function(one.pair, num_free_pulses, total_time){
 get_loss_inc = function(params, one.pair){
   days = one.pair[,'day']
   one.sim.sequence = generate_one_lm_inc(params,days = days)
-  one.sim.fit = lm(one.sim.sequence~days*one.pair[,'d'] )
-  one.seq.fit = lm(one.pair[,'ltv']~days*one.pair[,'d'] )
+  one.sim.fit = lm(one.sim.sequence~days*one.pair[,'d'] + one.pair[,'d']:one.pair[,'p'])
+  one.seq.fit = lm(one.pair[,'ltv']~days*one.pair[,'d'] + one.pair[,'d']:one.pair[,'p'])
   mean((one.seq.fit$coefficients-one.sim.fit$coefficients)^2)
 }
 

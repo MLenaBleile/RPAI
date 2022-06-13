@@ -87,7 +87,12 @@ Tn_update = function(SnT, Tn, mu, Zn){
 generate_one = function(radiation_days, parameter_vec, maxtime){
   #print(rnorm(1, mean=0,sd=sqrt(init_variance)))
   para_set = make_default_para_set()
-  para_set[names(parameter_vec),"best"] = as.numeric(parameter_vec)
+  if(is.matrix(parameter_vec)){
+    param_names = colnames(parameter_vec)
+  }else{
+    param_names=names(parameter_vec)
+  }
+  para_set[param_names,"best"] = as.numeric(parameter_vec)
   Tn_vec = rep(NA, maxtime)
   ###set vectors for model components
   SnT_vec<-rep(NA, maxtime)
@@ -102,13 +107,12 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
   dose_vec=rep(0, maxtime)
   dose_vec[15] = 10
   dose_vec[radiation_days] = 10
-  #print(dose_vec)
   #print(radiation_days)
   pd1_vec = generate_pd1_stacked(radiation_days, totaltime=maxtime)
   
   
   Tn_vec[1]<- para_set["Tinit","best"]
-  
+  print(para_set['Tinit','best'])
   
   #print(Tn_vec[1])
   for (i in 1: (maxtime-1))
@@ -132,85 +136,28 @@ generate_one = function(radiation_days, parameter_vec, maxtime){
   return(out.array)
 }
 
-generate_one_sumexp = function(radiation_days, parameter_vec, maxtime){
-  radiation_days=radiation_days[radiation_days>15]
-  d0=15
-  if(length(radiation_days)>0){
-    d1 = radiation_days[1]}else{d1=maxtime+1}
-  rho1 = parameter_vec['rho1'] 
-  beta0 = parameter_vec['beta0'] 
-  beta1 = parameter_vec['beta1'] 
-  gg = parameter_vec['gg']
-  rho2=rho1*(1-exp(-parameter_vec['theta1']*(d1-d0)))
-  time.vec=1:maxtime
-  first.decay.term = rho1*exp(beta0+beta1*d0)*exp(-gg*(time.vec-d0))*(time.vec>d0)
-  
-  fct.mean.exp = first.decay.term + (1-rho1*(time.vec>d0))*exp(beta0 + beta1*time.vec)
-  
-  if(maxtime>d1){
-    fct.mean.exp.1=fct.mean.exp
-    fct.mean.exp = rho2*(time.vec>d1)*fct.mean.exp.1*exp(-gg*(time.vec-d1))+(1-rho2*(time.vec>d1))*fct.mean.exp.1
-    
-  }else{
-    
-  }
-  #log(fct.mean.exp)
-  dose.vec = rep(0, length(fct.mean.exp))
-  dose.vec[unique(c(15, radiation_days))] = 1
-  out.array =array(data=NA, dim=c(1, length(fct.mean.exp),4))
-  dimnames(out.array) = list(NULL, NULL, c("ltv","d","p",'day'))
-  out.array[1,,'ltv'] = log(fct.mean.exp)
-  out.array[1,,'d'] =cumsum(dose.vec)
-  out.array[1,,'p'] = 0
-  out.array[1,,'day'] = 1:maxtime
-  out.array
-}
+make_parameter_mat = function(num_mice){
+  mu=0.21601
+  rho = 1.707
+  lambda = 0.30441
+  omega1 = 0.02349
+  omega2 = 0.01404
+  BT0 = 0.00001
+  TT0 = 0
+  Tinit = 1
+  parameter_vec=c(mu, rho, lambda, omega1, omega2, BT0, TT0, Tinit)
+  parameter_mat = matrix(rep(parameter_vec, num_mice), nrow=num_mice, byrow = T)
+  colnames(parameter_mat) = c("mu","rho","lambda","omega1","omega2","BT0","TT0","Tinit")
+  one.loc = lambda
 
-make_parameter_mat = function(num_mice, gen.mod){
-  test_num=num_mice
-  if(gen.mod=="recursive"){
-    para_set = make_default_para_set()
-    mu=0.21601
-    rho = 1.707
-    lambda = 0.30441
-    omega1 = 0.02349
-    omega2 = 0.01404
-    BT0 = 0.00001
-    TT0 = 0
-    Tinit = 1
-    parameter_vec=c(mu, rho, lambda, omega1, omega2, BT0, TT0, Tinit)
-    parameter_mat = matrix(rep(parameter_vec, num_mice), nrow=num_mice, byrow = T)
-    colnames(parameter_mat) = c("mu","rho","lambda","omega1","omega2","BT0","TT0","Tinit")
-    one.loc = lambda
-    #parameter_mat[,'lambda'] = rbeta(num_mice,shape1 = one.loc*one.scale, shape2 = (1-one.loc)*one.scale)
-    #parameter_mat[,'rho'] = sample(c(0,rho), num_mice, replace=T)
-    parameter_mat[,"lambda"] = truncnorm(num_mice, loc=lambda,scale=.3, lwr=0, upr=1)
-    #parameter_mat[,'BT0'] = truncnorm(num_mice, loc=BT0,scale=.001, lwr=0, upr=1)
-    #parameter_mat[,"lambda"] = log(seq(1,exp(1), length.out=num_mice))
-    parameter_mat[,"rho"] = truncnorm(num_mice, loc = rho, scale=.01,upr=3, lwr=0)
-    parameter_mat[,"mu"] = truncnorm(num_mice, loc = mu, scale=.003,upr=1, lwr=0)
-    #parameter_mat[,"omega1"] = truncnorm(num_mice, loc = omega1, scale=4e-6,upr=1, lwr=0.001)
-    other_params = setdiff(rownames(para_set), colnames(parameter_mat))
-    other_param_mat = matrix(rep(para_set[other_params,'best'], num_mice), ncol=length(other_params), byrow=T)
-    colnames(other_param_mat)=other_params
-    out.param.mat = cbind(parameter_mat, other_param_mat)}else{
-      param_names = param_names=c("rho1", "theta1", "beta0","beta1","gg")
-      minibatch_parameters = matrix(nrow=test_num, ncol=length(param_names))
-      colnames(minibatch_parameters) = param_names
-      true.param.gen = matrix(nrow=length(param_names), ncol=3)
-      colnames(true.param.gen) = c("m","var",'upper')
-      rownames(true.param.gen)=param_names
-      true.param.gen[,'m'] = c(.5,.15,.1,.516,.2)
-      true.param.gen[,'var'] =c(0,0,0,0,1)
-      true.param.gen[,'upper'] = c(1,1,1,1,1)
-      for(pp in param_names){
-        minibatch_parameters[,pp] = truncnorm(test_num, loc = true.param.gen[pp,'m'], scale=true.param.gen[pp,'var'], lwr=0, upr=true.param.gen[pp,'upper'])
-      }
-      out.param.mat = minibatch_parameters
-      #out.param.mat[,'theta1'] = logit(out.param.mat[,'theta1'])
-    }
-  
-  out.param.mat
+  parameter_mat[,"lambda"] = truncnorm(num_mice, loc=lambda,scale=.3, lwr=0, upr=1)
+  #parameter_mat[,"lambda"] = rexp(num_mice, rate=1/lambda)
+
+  #parameter_mat[,"rho"] = rexp(num_mice, rate = 1/rho)
+  parameter_mat[,"rho"] = truncnorm(num_mice, loc = rho, scale=.01,upr=3, lwr=0)
+  parameter_mat[,"mu"] = truncnorm(num_mice, loc = mu, scale=.000025,upr=1, lwr=0)
+  #parameter_mat[,"omega1"] = truncnorm(num_mice, loc = omega1, scale=4e-6,upr=1, lwr=0.001)
+  parameter_mat
 }
 
 

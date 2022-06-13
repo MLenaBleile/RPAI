@@ -3,33 +3,24 @@ make_potential_action_mat = function(potential_actions, num_free_pulses){
 }
 
 
-# generate_one_initial_batch = function(parameter_mat,inc.time, total_time){
-#   minibatch_size = nrow(parameter_mat)
-#   one_batch = array(NA, dim=c(minibatch_size, total_time, 4))
-#   dimnames(one_batch) = list(NULL, NULL, c("ltv","d","p","day"))
-#   for(idx in 1:minibatch_size){
-#     one_batch[idx,1:inc.time,] = generate_one(c(), parameter_mat[idx,], inc.time)
-# 
-#   }
-#   one_batch
-# }
-
-generate_one_batch = function(parameter_mat, action_mat, current.time, gen.mod="recursive"){
+generate_one_initial_batch = function(parameter_mat,inc.time, total_time){
   minibatch_size = nrow(parameter_mat)
   one_batch = array(NA, dim=c(minibatch_size, total_time, 4))
   dimnames(one_batch) = list(NULL, NULL, c("ltv","d","p","day"))
-  if(gen.mod=="recursive"){
+  for(idx in 1:minibatch_size){
+    one_batch[idx,1:inc.time,] = generate_one(c(), parameter_mat[idx,], inc.time)
+
+  }
+  one_batch
+}
+
+generate_one_batch = function(parameter_mat, action_mat, current.time){
+  minibatch_size = nrow(parameter_mat)
+  one_batch = array(NA, dim=c(minibatch_size, total_time, 4))
+  dimnames(one_batch) = list(NULL, NULL, c("ltv","d","p","day"))
   for(idx in 1:minibatch_size){
     one_batch[idx,,] = generate_one(cumsum(as.numeric(action_mat[idx,]))+15, parameter_mat[idx,], current.time)
   }
-    
-    }else{
-      for(idx in 1:minibatch_size){
-        #print(current.time)
-    one_batch[idx,,] = generate_one_sumexp(cumsum(as.numeric(action_mat[idx,]))+15, parameter_mat[idx,], current.time)
-      
-    }
-    }
   one_batch
 }
 
@@ -56,7 +47,7 @@ get_predictions = function(params, one.pair, all.action.mat){
   indiv.par = one.optim$par
   indiv.par[['beta.d']]=params[['beta.d']]
   indiv.par[['beta.d2']]=params[['beta.d2']]
-  #print(indiv.par)
+  print(indiv.par)
   #indiv.par[['rho3']]=params[['rho3']]
   prediction.vec=rep(NA, nrow(all.action.mat))
 
@@ -69,20 +60,12 @@ get_predictions = function(params, one.pair, all.action.mat){
   prediction.vec
 }
 
-get.optim.plan = function(parameter_vec,maxtime, all.action.mat, gen.mod){
+get.optim.plan = function(parameter_vec,maxtime, all.action.mat){
   ftv.vec= rep(NA, nrow(all.action.mat))
-  if(gen.mod=="recursive"){
-    for(j in 1:nrow(all.action.mat)){
-      one.action.vec = all.action.mat[j,]
-      one.sequence = generate_one(radiation_days=c(cumsum(one.action.vec)+15), parameter_vec=parameter_vec, maxtime=maxtime+10)[1,,'ltv']
-      ftv.vec[j] = one.sequence[maxtime]
-    }
-    }else{
-    for(j in 1:nrow(all.action.mat)){
-      one.action.vec = all.action.mat[j,]
-      one.sequence = generate_one_sumexp(radiation_days=c(cumsum(one.action.vec)+15), parameter_vec=parameter_vec, maxtime=maxtime+10)[1,,'ltv']
-      ftv.vec[j] = one.sequence[maxtime]
-    }
+  for(j in 1:nrow(all.action.mat)){
+    one.action.vec = all.action.mat[j,]
+    one.sequence = generate_one(radiation_days=c(cumsum(one.action.vec)+15), parameter_vec=parameter_vec, maxtime=maxtime+10)[1,,'ltv']
+    ftv.vec[j] = one.sequence[maxtime]
   }
   best.action.vec=all.action.mat[which.min(ftv.vec),]
   best.action.vec

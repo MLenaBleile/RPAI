@@ -1,4 +1,4 @@
-setwd("~/RPAI/online/online-2pulse-3param-working")
+setwd("~/RPAI/online/online-2pulse-3param-b2")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 source("lm_fncs.R")

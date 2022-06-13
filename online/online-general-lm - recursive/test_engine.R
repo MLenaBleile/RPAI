@@ -31,14 +31,14 @@
 #   dimnames(all_data) = list(1:animal.idx, 1:total_time, c("ltv","d","p","day"))
 # }
 
-test_mice=tail(train_num+1:adapt_num, 50)
+test_mice=tail(adapt_idx[1:100],50)
 test_num=length(test_mice)
 all_test_data = one_batch[test_mice,,]
 all_test_parameters = parameter_mat[test_mice,]
-all_test_actions = action_mat[test_mice]
+
 
 reference_days = c(1,potential_actions)
-optim_actions=c()
+#optim_actions=c()
 ref.outcome.mat = matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 references=c(paste("day",reference_days),"random")
 colnames(ref.outcome.mat)=references
@@ -48,12 +48,12 @@ for(test.id in test_mice ){
   for(refday.idx in 1:length(reference_days)){
     action_mat = as.matrix(rep(reference_days[refday.idx],num_free_pulses), ncol=num_free_pulses)
     test_parameter_mat=t(as.matrix(all_test_parameters[test.id.sequential,], nrow=1, ncol=8))
-    one_ref_sequence = generate_one_batch(test_parameter_mat, t(action_mat), current.time = total_time, gen.mod=gen.mod)
+    one_ref_sequence = generate_one_batch(test_parameter_mat, t(action_mat), current.time = total_time)
     ref.outcome.mat[test.id.sequential,refday.idx] = one_ref_sequence[,total_time,'ltv']
   }
   action_mat = as.matrix(all.action.mat[sample(1:nrow(all.action.mat),1),])
   test_parameter_mat=t(as.matrix(all_test_parameters[test.id.sequential,], nrow=1, ncol=8))
-  one_ref_sequence = generate_one_batch(test_parameter_mat, action_mat, current.time = total_time, gen.mod=gen.mod)
+  one_ref_sequence = generate_one_batch(test_parameter_mat, action_mat, current.time = total_time)
   ref.outcome.mat[test.id.sequential,'random'] = one_ref_sequence[,total_time,'ltv']
   #optim_actions=c(optim_actions, get.optim.plan(test_parameter_mat[1,], maxtime=total_time, all.action.mat = as.matrix(all.action.mat)))
   test.id.sequential= test.id.sequential+1

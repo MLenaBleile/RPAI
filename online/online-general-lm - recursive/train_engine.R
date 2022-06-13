@@ -1,4 +1,4 @@
-setwd("~/RPAI/online/online-general-lm")
+setwd("~/RPAI/online/online-general-lm - recursive")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 source("lm_fncs.R")
@@ -8,29 +8,28 @@ library(glmnet)
 set.seed(1998)
 num_free_pulses=1
 total_time = 40 + 20*(num_free_pulses-1)
-gen.mod = "sumexp"
-wait_time=7
+wait_time=9
 potential_actions = 1:5+wait_time
-train_num=50/num_free_pulses
-adapt_num=150/num_free_pulses
+train_num=10/num_free_pulses
+adapt_num=100/num_free_pulses
 test_num = 50
 train_idx=1:(train_num*num_free_pulses)
 adapt_idx=1:(adapt_num*num_free_pulses) + max(train_idx)
 nonadapt_idx=1:(test_num*num_free_pulses) + max(adapt_idx)
 test_idx = tail(c(adapt_idx),test_num*num_free_pulses)
 total_mice=train_num+adapt_num
-num_pc = 3
+num_pc = 7
 inc.time=wait_time+15-2
 all.action.mat = make_potential_action_mat(potential_actions = potential_actions, num_free_pulses = num_free_pulses)
 
 ##make initial data
-parameter_mat = make_parameter_mat(total_mice, gen.mod=gen.mod)
+parameter_mat = make_parameter_mat(total_mice)
 action_mat = all.action.mat[sample(1:nrow(all.action.mat), total_mice, replace=T),]
 if(num_free_pulses==1){
   action_mat = matrix(action_mat, ncol=1)
 }
 action_mat[1:nrow(all.action.mat),] = as.matrix(all.action.mat)
-one_batch = generate_one_batch(parameter_mat = parameter_mat, action_mat, current.time = total_time, gen.mod=gen.mod)
+one_batch = generate_one_batch(parameter_mat = parameter_mat, action_mat, current.time = total_time)
 
 
 ##get optimal actions and features for training
@@ -43,8 +42,8 @@ dimnames(rteffects) = list(1:total_mice,c(names(test_effects), 'action'), as.cha
 names(dimnames(rteffects)) = c("animal", "effect", "pulse")
 
 dn.mat = matrix(NA, nrow=total_mice, ncol=num_free_pulses)
-for(one.mouse in 1:train_num){
-  op.at=get.optim.plan(parameter_mat[one.mouse,],total_time, as.matrix(all.action.mat), gen.mod=gen.mod)
+for(one.mouse in 1:total_mice){
+  op.at=get.optim.plan(parameter_mat[one.mouse,],total_time, as.matrix(all.action.mat))
   optim.acts[one.mouse,] = op.at
   current.time=inc.time
   
@@ -89,6 +88,7 @@ pp=1
 all.cf.preds = data.frame()
 
 for(one.mouse in 1:adapt_num+train_num){
+  cat("optimizing mouse,",one.mouse," \n")
   one.paraset=matrix(parameter_mat[one.mouse,], nrow=1)
   colnames(one.paraset) = colnames(parameter_mat)
   ###prediction phase
@@ -97,13 +97,7 @@ for(one.mouse in 1:adapt_num+train_num){
     if(pp>1){
       current.time = min(which(one_batch[one.mouse,,'d']==(pp))) + wait_time
     }else{
-      if(gen.mod=="recursive"){
-      one_batch[one.mouse,1:current.time,] = generate_one(c(),parameter_vec=one.paraset, current.time)}else{
-        one.paraset=as.numeric(one.paraset)
-        names(one.paraset) = colnames(parameter_mat)
-        one_batch[one.mouse,1:current.time,] = generate_one_sumexp(c(),parameter_vec=one.paraset, current.time)
-        one.paraset=matrix(parameter_mat[one.mouse,], nrow=1)
-        }
+      one_batch[one.mouse,1:current.time,] = generate_one(c(),parameter_vec=one.paraset, current.time)
     }
   obs.idx= obs.idx+1
   one.effects = get_rteffects(one_batch[one.mouse,1:current.time,],num_free_pulses = num_free_pulses, total_time=current.time)
@@ -121,7 +115,7 @@ for(one.mouse in 1:adapt_num+train_num){
   selected.idx=which.min(predictions)
   one.best.pred = potential_actions[selected.idx]
   
-  rteffects[one.mouse,'action',pp] = one.best.pred
+  rteffects[one.mouse,'action',as.character(pp+1)] = one.best.pred
   
 
   ###Model refitting phase
@@ -155,13 +149,8 @@ for(one.mouse in 1:adapt_num+train_num){
   in.data$act = as.character(all.pca.data[,'action'])
   
   colnames(one.paraset) = colnames(parameter_mat)
-  if(gen.mod=="recursive"){
   one_batch[one.mouse,,] = generate_one(parameter_vec = one.paraset, radiation_days = cumsum(rteffects[one.mouse,'action',])+15, maxtime=total_time)
-  }else{
-    one.paraset=as.numeric(one.paraset)
-    names(one.paraset) = colnames(parameter_mat)
-    one_batch[one.mouse,,] = generate_one_sumexp(parameter_vec = one.paraset, radiation_days = cumsum(rteffects[one.mouse,'action',])+15, maxtime=total_time)
-  }
+
   ltv.vec = rep(one_batch[1:(one.mouse-1),total_time,'ltv'], each=num_free_pulses)
   ltv.vec = c(ltv.vec,rep(one_batch[one.mouse,total_time,'ltv'],pp))
   in.data$ltv = ltv.vec

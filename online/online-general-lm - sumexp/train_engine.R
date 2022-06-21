@@ -1,4 +1,8 @@
-setwd("~/RPAI/online/online-general-lm")
+###this is the best functioning version of the lm so far.
+##perhaps we could prune the model a bit so that it is more efficient.
+###Do NOT edit without copying. 
+
+setwd("~/RPAI/online/online-general-lm - sumexp")
 source("data_generation_fncs.R")
 source("env_fncs.R")
 source("lm_fncs.R")
@@ -10,7 +14,7 @@ num_free_pulses=1
 total_time = 40 + 20*(num_free_pulses-1)
 gen.mod = "sumexp"
 wait_time=7
-potential_actions = 1:5+wait_time
+potential_actions = 1:13+wait_time
 train_num=50/num_free_pulses
 adapt_num=150/num_free_pulses
 test_num = 50
@@ -79,7 +83,7 @@ in.data$ltv=ltv.vec
 fit2 = lm(ltv~(.)^3, data=in.data[train_idx,])
 #fit2 = nnet::nnet(ltv~(.)^3, data=in.data[train_idx,], size=5, linout=T)
 
-predicted.best = c()
+predicted.best = numeric(total_mice)
 
 obs.idx=sum(rteffects[,'action',]!=0)
 
@@ -98,7 +102,7 @@ for(one.mouse in 1:adapt_num+train_num){
       current.time = min(which(one_batch[one.mouse,,'d']==(pp))) + wait_time
     }else{
       if(gen.mod=="recursive"){
-      one_batch[one.mouse,1:current.time,] = generate_one(c(),parameter_vec=one.paraset, current.time)}else{
+        one_batch[one.mouse,1:current.time,] = generate_one(c(),parameter_vec=one.paraset, current.time)}else{
         one.paraset=as.numeric(one.paraset)
         names(one.paraset) = colnames(parameter_mat)
         one_batch[one.mouse,1:current.time,] = generate_one_sumexp(c(),parameter_vec=one.paraset, current.time)
@@ -111,6 +115,7 @@ for(one.mouse in 1:adapt_num+train_num){
   if(num_free_pulses>1){
   one.in.vec = c(pp+1, one.effects)
   names(one.in.vec)[1]="pulse"}else{one.in.vec=c(one.effects)}
+  
   one.in = matrix(rep(one.in.vec, length(potential_actions)), byrow=T, nrow=length(potential_actions))
   colnames(one.in) =names(one.in.vec)
   one.in.df = as.data.frame(predict(pca.obj, as.data.frame(one.in))[,1:num_pc])
@@ -120,9 +125,8 @@ for(one.mouse in 1:adapt_num+train_num){
   pred.df$ltv = predictions
   selected.idx=which.min(predictions)
   one.best.pred = potential_actions[selected.idx]
-  
   rteffects[one.mouse,'action',pp] = one.best.pred
-  
+  predicted.best[one.mouse] = one.best.pred
 
   ###Model refitting phase
   names.formelt=names(dimnames(rteffects))
@@ -174,34 +178,5 @@ for(one.mouse in 1:adapt_num+train_num){
 
 }
 
-
-
-# for(one.mouse in 1:test_num + train_num+adapt_num){
-#   action.vec= c()
-#   
-#   for(pp in 1:num_free_pulses){
-#     current.time = inc.time
-#     if(pp>1){
-#       current.time = min(which(one_batch[one.mouse,,'d']==(pp))) + wait_time
-#     }
-#     obs.idx= obs.idx+1
-#     one.effects = get_rteffects(one_batch[one.mouse,1:current.time,])
-#     rteffects[one.mouse,,pp] = one.effects
-#     one.in = matrix(rep(as.numeric(one.effects), length(potential_actions)), byrow=T, ncol=length(test_effects))
-#     colnames(one.in) = colnames(pca.data)
-#     one.in.df = as.data.frame(predict(pca.obj, as.data.frame(one.in))[,1:num_pc])
-#     one.in.df$act=as.character(potential_actions)
-#     one.in.df$pulse=invlogit((pp+.5)/3)
-#     
-#     one.best.pred = potential_actions[which.min(predict(fit2, one.in.df))]
-#     action.vec = c(action.vec, one.best.pred)
-#     
-#     predicted.best = c(predicted.best, one.best.pred)
-#     actions = c(actions, one.best.pred)
-#     names(actions)[length(actions)] = paste(one.mouse, pp, sep="_")
-#     #fit2 = lm(ltv.vec~(PC1+PC2+PC3+PC4+PC5+PC6+PC7)*act*pulse, data=in.data, weights=data.probs)
-#   }
-#   act.mat[one.mouse,] = action.vec
-# }
 
 source("test_engine.R")

@@ -37,7 +37,7 @@ all_test_data = one_batch[test_mice,,]
 all_test_parameters = parameter_mat[test_mice,]
 all_test_actions = action_mat[test_mice]
 
-reference_days = c(1,potential_actions)
+reference_days = c(1:20)
 optim_actions=c()
 ref.outcome.mat = matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 references=c(paste("day",reference_days),"random")

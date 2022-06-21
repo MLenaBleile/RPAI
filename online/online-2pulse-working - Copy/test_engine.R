@@ -6,8 +6,9 @@ calibration_num=20
 test_num=calibration_num+50
 recompute_marginals=T
 mod.to.fit="sumexp"
+gen.mod="sumexp"
 
-maxtime = 80
+maxtime = 40
 num_free_pulses=1
 wait_time=7
 potential_actions = 1:7 + wait_time
@@ -19,7 +20,7 @@ names(overall.loss.weights) = c("effects",'raw','liklihood')
 all.action.mat = make_potential_action_mat(potential_actions = potential_actions, num_free_pulses = num_free_pulses)
 ##this is the date of the first IO treatment (two days before the first RT), plus the waiting time.
 inc_days = 15-2+wait_time
-minibatch_parameters=make_parameter_mat(test_num)
+minibatch_parameters=make_parameter_mat(test_num, gen.mod)
 
 
 ##initialize a bunch of objects for storing the outcomes

@@ -17,6 +17,11 @@ maxtime = 40
 num_free_pulses=1
 wait_time=9
 potential_actions = 1:7 + wait_time
+###parameters that we don't assume to be known
+param_names=c("rho1","theta1","beta0","beta1","gg")
+random_params=c('gg')
+fixed_params = setdiff(param_names, random_params)
+optimal_actions = rep(NA,test_num)
 bounds = matrix(NA,nrow=length(param_names), ncol=2)
 colnames(bounds) = c("upper","lower")
 rownames(bounds) = param_names
@@ -33,11 +38,7 @@ reference_days=c(1,potential_actions,20)
 reference.outcomes=matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 colnames(reference.outcomes) = c(paste("day",reference_days),'random')
 selected_actions=matrix(NA, nrow=test_num, ncol=num_free_pulses)
-###parameters that we don't assume to be known
-param_names=c("rho1","theta1","beta0","beta1","gg")
-random_params=c('gg')
-fixed_params = setdiff(param_names, random_params)
-optimal_actions = rep(NA,test_num)
+
 all.pairs = array(dim=c(test_num,maxtime,4))
 dimnames(all.pairs) = list(NULL, NULL, c("ltv","d","p",'day'))
 names(dimnames(all.pairs)) = c('animal','time', 'feature')

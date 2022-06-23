@@ -1,7 +1,7 @@
 
 
 
-sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, waitime_vec=c(7,7), eval.time){
+sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, waitime_vec=c(7,7)){
   num_zeros = 60-length(one.sequence)
   num_action_zeros = num_free_pulses-length(action.vec)
   if(num_action_zeros>0){
@@ -25,7 +25,7 @@ sequence_to_state=function(one.sequence, action.vec, done, num_free_pulses, wait
   ss2=summary(fit2)
   out.seq=log(tail(one.sequence,20))
   out = c(as.numeric(ss$coefficients[,1:2]),ss$r.squared,ss2$coefficients[,1:2],ss2$r.squared)
-  out=c(one.sequence, eval.time)
+  out=one.sequence
   out
 }
 

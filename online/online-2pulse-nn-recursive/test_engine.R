@@ -1,4 +1,4 @@
-test_indices=1:500
+test_indices=1:50
 num_mice = length(test_indices)
 optimal_actions=rep(NA, num_mice)
 data_mat = matrix(NA, ncol=20, nrow=num_mice)
@@ -27,7 +27,7 @@ for(mouse in 1:num_mice){
   reference.outcomes[mouse,'random'] = log(one.reference[one.random.action,total_days])
   current.time=15-2+waitime_vec[1]
   one.sequence = generate_one(c(), parameter_vec, current.time)
-  one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = c(), done=T, num_free_pulses = 1, eval.time=eval.times[mouse])
+  one.state=sequence_to_state(one.sequence = as.numeric(one.sequence), action.vec = c(), done=T, num_free_pulses = 1)
   one.action = get_action(q.fit,one.state, potential_actions = potential_actions)+waitime_vec[1]
   selected_actions=c(selected_actions, one.action)
   one.agent.treated.sequence = generate_one(one.action+15, parameter_vec=parameter_vec, maxtime=total_days)
@@ -73,4 +73,4 @@ print(result)
 # legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": "), pch=16, col=c(colors, "purple"))
 # abline(v=0, lty=2)
 
-print(table(selected_actions, optimal_actions))
+table(selected_actions, optimal_actions)

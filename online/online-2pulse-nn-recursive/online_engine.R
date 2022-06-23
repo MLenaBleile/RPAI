@@ -1,4 +1,9 @@
-setwd("~/RPAI/online/online-2pulse-3param-v6")
+###this is the nn version that actually works
+###do not adjust or try new things on this until you have made a copy
+###To do: 
+  #add "time" as a factor in state and retrain, then tune on real data
+  #switch to sum of exponentials as generating fnc
+setwd("~/RPAI/online/online-2pulse-working")
 source("data_generation_fncs.R")
 source("env_fncs_2pulse.R")
 
@@ -10,20 +15,20 @@ total_time=40
 total_days=total_time
 num_pulses=2
 num_free_pulses=num_pulses-1
-state_size = 31
+state_size = 20
 bellmann_error = rep(NA, max_epochs)
-waitime_vec=rep(9, num_pulses)
+waitime_vec=rep(7, num_pulses)
 state_mat = matrix(NA, nrow = max_epochs, ncol=state_size)
 nextstate_mat = matrix(NA, nrow=max_epochs, ncol=state_size)
-potential_actions = 1:5
+potential_actions = 1:7
 action_size=length(potential_actions)
 actions = rep(NA, max_epochs)
 dones = rep(NA, max_epochs)
 eps=1
 eps.vec=c(eps)
-eps_decay=1
+eps_decay=.999
 epsilon_min=.001
-minibatch_size=100
+minibatch_size=64
 epoch=1
 
 
@@ -39,8 +44,7 @@ random.init$actions2 = random.init$actions^2
 random.init$targets = rnorm(nrow(random.init))
 
 library(neuralnet)
-q.fit = nnet::nnet(targets~(.), data=random.init, size=20, maxit=1)
-#neuralnet(formula = targets~(.) , data=random.init, hidden = c(10), threshold = 100000)
+q.fit = q.fit = neuralnet(formula = targets~(.) , data=random.init, hidden = c(30), threshold = 100000)
 israndom=rep(T, max_epochs)
 
 while(epoch < max_epochs){
@@ -104,6 +108,4 @@ inputs$actions=actions
 inputs$actions2=actions^2
 #inputs$actions3=actions^3
 train_idx = 1:(epoch-1)
-#q.fit = neuralnet(formula = rewards[train_idx]~(.) , thresh=.0015,data=inputs[train_idx,], hidden = c(20,10), 
- #                 stepmax = 100000, rep = 1, startweights = q.fit$weights, lifesign="full")
-#q.fit = caret::pcaNNet(rewards[train_idx]~(.), data=inputs[train_idx,],size=30,linout=T, scale=T, maxit=50000)
+q.fit = nnet::nnet(rewards[train_idx]~(.), data=inputs[train_idx,],size=30,linout=T, scale=T, maxit=50000)

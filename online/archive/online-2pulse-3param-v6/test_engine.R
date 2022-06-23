@@ -26,7 +26,7 @@ eps_decay=1
 epsilon_min=.001
 minibatch_size=100
 epoch=1
-source("online_engine.R")
+#source("online_engine.R")
 #q.fit=readRDS("model.rds")
 
 test_indices=1:50
@@ -68,6 +68,7 @@ for(mouse in 1:num_mice){
 
 
 colors = rainbow(length(references))
+effect.sizes=numeric()
 deltaref = reference.outcomes[,1]
 plot(density(deltaref-agent.outcomes), xlab="final ltv reference - final ltv agent",type="n",xlim=c(-.2,.5), main="2 pulse performance", col="red", ylim=c(0,25))
 for(refday.idx in 1:length(references)){

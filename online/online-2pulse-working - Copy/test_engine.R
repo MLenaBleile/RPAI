@@ -1,4 +1,4 @@
-setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-working")
+setwd("C:/Users/s198663/Documents/RPAI/online/online-2pulse-working - Copy")
 source("datagen_fncs.R")
 source("env_fncs_2pulse.R")
 set.seed(1998)
@@ -7,7 +7,7 @@ test_num=calibration_num+50
 recompute_marginals=T
 mod.to.fit="sumexp"
 
-maxtime = 80
+maxtime = 40
 num_free_pulses=1
 wait_time=7
 potential_actions = 1:7 + wait_time
@@ -18,7 +18,7 @@ overall.loss.weights = c(0,1,0)
 names(overall.loss.weights) = c("effects",'raw','liklihood')
 all.action.mat = make_potential_action_mat(potential_actions = potential_actions, num_free_pulses = num_free_pulses)
 ##this is the date of the first IO treatment (two days before the first RT), plus the waiting time.
-inc_days = 15-2+wait_time
+inc_days = 15+wait_time
 minibatch_parameters=make_parameter_mat(test_num)
 
 
@@ -37,8 +37,8 @@ colnames(minibatch_parameters) = param_names
 true.param.gen = matrix(nrow=length(param_names), ncol=2)
 colnames(true.param.gen) = c("m","var")
 rownames(true.param.gen)=param_names
-true.param.gen[,'m'] = c(.9,.9,.1,.01,.15)
-true.param.gen[,'var'] =c(.1,0,0.01,0.01,0.01)
+true.param.gen[,'m'] = c(.9,.9,.1,.216,.5)
+true.param.gen[,'var'] =c(.1,0,0.0,0.0,1)
 for(pp in param_names){
   minibatch_parameters[,pp] = truncnorm(test_num, loc = true.param.gen[pp,'m'], scale=true.param.gen[pp,'var'], lwr=0, upr=1)
 }
@@ -47,7 +47,7 @@ colnames(est.par.mat) = param_names
 predictive.param.mat = est.par.mat
 optimal_actions = rep(NA,test_num)
 ##parameters that we assume have a distribution are the random_parameters
-random_params=c("rho1",'beta0','beta1','gg')
+random_params=c("rho1",'gg')
 fixed_params = setdiff(param_names, random_params)
 weight.factors = matrix(nrow=test_num, ncol=length(random_params))
 colnames(weight.factors)=random_params
@@ -72,12 +72,13 @@ all.counterfactual.pairs = array(dim=c(0,maxtime,4))
 fixed_param_vec = runif(length(fixed_params))
 names(fixed_param_vec) = fixed_params
 
-for(mouse in 1:test_num){
+mouse=1
+for(mouse in mouse:test_num){
   cat("optimizing mouse ",mouse,"\n")
   true.param.vec= minibatch_parameters[mouse,]
   one.reference.pairs = generate_one_counterfactualset(minibatch_parameters[mouse,],total_days = maxtime,potential_actions = 1:20)
   one.optima= which.min(one.reference.pairs[potential_actions,maxtime,'ltv'])
-  optimal_actions[mouse] = one.optima+wait_time
+  optimal_actions[mouse] = potential_actions[one.optima]
   #optima.verif[mouse] = get.optim.plan(parameter_vec=parameter_vec, maxtime=maxtime, all.action.mat = all.action.mat)
   
   
@@ -101,7 +102,7 @@ for(mouse in 1:test_num){
   if(mouse>2){
     mssdiff = sqrt(sum((inc.pair[1,,'ltv']-colMeans(initial.sequences, na.rm=T))^2))
     overall.sd = apply(overall.estimate.mat[,random_params],c(2), sd, na.rm=T)
-    weight.factor= sqrt(apply(est.par.mat[,random_params],c(2),sd, na.rm=T)*overall.sd)*weight.const
+    weight.factor= sqrt(apply(est.par.mat[,random_params],c(2),sd, na.rm=T)*overall.sd)*weight.const +1
     if(recompute_marginals){
       overall.params= optimize.model(pair.set=all.pairs[1:(mouse-1),,], param_names = param_names,bounds=bounds, mod.to.fit=mod.to.fit,fixed_param_vec=c(), loss.weights=overall.loss.weights)
       overall.estimate.mat[mouse,]= overall.params[param_names]
@@ -162,8 +163,8 @@ for(refday.idx in 1:ncol(reference.outcomes)){
   deltaref = reference.outcomes[,refday.idx]
   #lines(density(deltaref[!is.na(deltaref)] - agent.outcomes[!is.na(deltaref)]), col=colors[refday.idx])
   loss=deltaref-agent.outcomes
-  loss=tail(loss, 30)
-  results[refday.idx,] = c(mean(exp(-loss), na.rm=T), median(exp(-loss), na.rm=T), max(loss)-min(loss), sum(loss>0)/sum(loss!=0),sum(loss>=0)/length(loss) )
+  loss=loss[20:70]
+  results[refday.idx,] = c(mean(loss), median(exp(-loss), na.rm=T), max(loss)-min(loss), sum(loss>0)/sum(loss!=0),sum(loss>=0)/length(loss) )
   #cat(agent.outcomes[agent.outcomes>deltaref])
 }
 print(results)
@@ -177,8 +178,4 @@ beepr::beep(sound=8)
 #legend("topright", legend=paste(c(paste("day", reference_days), "random"), round(effect.sizes, 3), sep=": d="), pch=16, col=c(colors, "purple"))
 #abline(v=0, lty=2)
 
-fixed.weights=matrix(nrow=test_num, ncol=length(fixed_params))
-colnames(fixed.weights)=fixed_params
-for(mm in 2:test_num){
-  fixed.weights[mm, fixed_params] = apply(overall.estimate.mat[1:mm,fixed_params],c(2), sd, na.rm=T)/apply(est.par.mat[1:mm,fixed_params],c(2), sd, na.rm=T)
-}
+

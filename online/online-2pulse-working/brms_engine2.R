@@ -5,24 +5,31 @@ library(brms)
 library(nlme)
 library(boot)
 set.seed(1998)
-calibration_num=50
-test_num=calibration_num+100
+calibration_num=100
+test_num=calibration_num+190
 recompute_marginals=T
 mod.to.fit="sumexp"
 gen.mod="sumexp"
 loss.weights=c(1,0,0)
 names(loss.weights) = c("raw","liklihood","effects")
+###parameters that we don't assume to be known
+param_names=c("rho1","theta1","beta0","beta1","gg")
+random_params=c('gg')
+fixed_params = setdiff(param_names, random_params)
+optimal_actions = rep(NA,test_num)
+
 
 maxtime = 40
 num_free_pulses=1
-wait_time=9
+wait_time=7
 potential_actions = 1:7 + wait_time
+all.action.mat = make_potential_action_mat(potential_actions,1)
 bounds = matrix(NA,nrow=length(param_names), ncol=2)
 colnames(bounds) = c("upper","lower")
 rownames(bounds) = param_names
 bounds[,'upper'] = 1
 bounds[,'lower'] = 0
-bounds['theta1','upper']=.5
+bounds['theta1','upper']=.3
 
 
 inc_days = 15+wait_time
@@ -33,27 +40,18 @@ reference_days=c(1,potential_actions,20)
 reference.outcomes=matrix(NA, nrow=test_num, ncol=length(reference_days)+1)
 colnames(reference.outcomes) = c(paste("day",reference_days),'random')
 selected_actions=matrix(NA, nrow=test_num, ncol=num_free_pulses)
-###parameters that we don't assume to be known
-param_names=c("rho1","theta1","beta0","beta1","gg")
-random_params=c('gg')
-fixed_params = setdiff(param_names, random_params)
-optimal_actions = rep(NA,test_num)
+all.predictive.pars = matrix(NA, nrow=test_num, ncol=length(param_names))
+colnames(all.predictive.pars) = param_names
+
 all.pairs = array(dim=c(test_num,maxtime,4))
 dimnames(all.pairs) = list(NULL, NULL, c("ltv","d","p",'day'))
 names(dimnames(all.pairs)) = c('animal','time', 'feature')
 
-##prior distributions
-prior1 <- c(prior(normal(0, 2), nlpar = "beta0"),
-            prior(normal(0, 2), nlpar = "beta1"),
-            prior(normal(0, 1), nlpar = "thetaa"),
-            prior(normal(0, 1), nlpar = "rhoo"),
-            prior(normal(0, 1), nlpar = "gg")
-)
 
-##model formula
-model.formula = ltv~get.mean.sumexp(logitrhoo, logitthetaa, beta0,beta1, gg, as.array(d1),as.array(current.time))
+
 agent.actions=numeric(test_num)
 mouse=1
+estimated.par = NULL
 
 for(mouse in mouse:test_num){
   cat("optimizing mouse ",mouse,"\n")
@@ -85,32 +83,8 @@ for(mouse in mouse:test_num){
     all.pairs.molten$d1 = apply(all.pairs[1:mouse,,'d'],c(1), get.chg.idx)
     #all.pairs.molten$ltv[all.pairs.molten$animal==mouse& all.pairs.molten$current.time<= inc_days]=inc.pair[1,]
     all.pairs.clean=all.pairs.molten[all.pairs.molten$current.time>1&(!is.na(all.pairs.molten$ltv)),]
-    get.mean.sumexp = Vectorize(function(rho1,theta1, beta0,beta1,gg, d1,current.time){
-      scale.fact=1
-      d0=sqrt(15)/scale.fact
-      d1 = sqrt(d1)/scale.fact
-      rhoo = rho1
-      beta0 = 0
-      beta1 = beta1
-      rho2=rho1*(1- exp(-abs(theta1)*(d1-d0)))
-      gg=abs(gg)
-      #print(length(d1))
-      #print(rho2)
-      time.vec=sqrt(1:maxtime)/scale.fact
-      first.decay.term = rhoo*exp(beta0+beta1*d0)*exp(-gg*(time.vec-d0))*(time.vec>d0)
-      fct.mean.exp = first.decay.term + (1-rhoo*(time.vec>d0))*exp(beta0+beta1*time.vec)
-      if(maxtime>d1){
-        fct.mean.exp.1=fct.mean.exp
-        fct.mean.exp = rho2*(time.vec>d1)*fct.mean.exp.1*exp(-gg*(time.vec-d1))+(1-rho2*(time.vec>d1))*fct.mean.exp.1
-        
-      }else{
-        
-      }
-      out=log(fct.mean.exp)[maxtime]
-      return(as.numeric(out))
-    }, vectorize.args = c("rho1","theta1","beta1","gg", "d1","current.time"))
     
-    estimated.par = optimize.model(all.pairs[1:(mouse),,], param_names, fixed_param_vec = c(), loss.weights=loss.weights,mod.to.fit="sumexp", bounds=bounds)
+    estimated.par = optimize.model(all.pairs[1:(mouse),,], param_names, fixed_param_vec = c(), loss.weights=loss.weights,mod.to.fit="sumexp", bounds=bounds, estimated.par=estimated.par)
     get.mean.sumexp = Vectorize(function(beta0,beta1,gg, d1,current.time){
       scale.fact=1
       d0=sqrt(15)/scale.fact
@@ -143,24 +117,8 @@ for(mouse in mouse:test_num){
     indiv.estimated.par = optimize.model(one.mouse, param_names,fixed_param_vec=fixed_param_vec, loss.weights=loss.weights, bounds=bounds,mod.to.fit="sumexp")
     predictive.par=estimated.par
     predictive.par[random_params] = indiv.estimated.par[random_params]
+    all.predictive.pars[mouse,param_names] = predictive.par[param_names] 
     one.action = get.optim.plan(predictive.par,maxtime, all.action.mat, "sumexp")
-    ###fit overall bayesian model to all.pairs[1:mouse,,]
-    model.formula2 = ltv~get.mean.sumexp(beta1=beta1, gg=gg, d1=as.array(d1),current.time=as.array(current.time))
-    
-    
-    # E = matrix(.15, nrow=mouse, ncol = 1)
-    # dimnames(E)[[1]] = as.character(1:(mouse))
-    # 
-    # all.data.init = all.pairs.clean[all.pairs.clean$current.time<10,]
-    # 
-    # all.pairs.clean$animal=as.character(all.pairs.clean$animal)
-    # 
-    # fit1= nlme(model.formula2, data=all.pairs.clean,random=gg~1|animal,fixed=list(beta1~1),method="REML",verbose=T,start = list(fixed=c(.5)), control = nlmeControl(opt = "nlminb", tolerance = .01))
-    # 
-    # one.datum = data.frame(animal=mouse, current.time=maxtime, ltv=NA, d1=potential_actions+15)
-    # predictions = predict(fit1, one.datum)
-    # ##then get the posterior prediction for the final day tumor volume under each potential action
-    # one.action = potential_actions[which.min(predictions)]
     agent.actions[mouse]=one.action
   }
   
@@ -179,7 +137,7 @@ rownames(results) = colnames(reference.outcomes)
 for(refday.idx in 1:ncol(reference.outcomes)){
   deltaref = reference.outcomes[,refday.idx]
   loss=deltaref-agent.outcomes
-  loss=loss[70:100]
+  loss=loss[71:103]
   plot(density(loss), main=colnames(reference.outcomes)[refday.idx])
   results[refday.idx,] = c(mean(loss), median(loss), (max(loss)-abs(min(loss))), sum(loss>0)/length(loss[loss!=0]),sum(loss>=0)/length(loss) )
 }

@@ -171,7 +171,7 @@ generate_one_sumexp = function(radiation_days, parameter_vec, maxtime, add.measu
   dimnames(out.array) = list(NULL, NULL, c("ltv","d","p",'day'))
   
   if(add.measurement.noise){
-    noise.vec=truncnorm(1, lwr = -fct.mean.exp+.01, scale=800)
+    noise.vec=truncnorm(1, lwr = -fct.mean.exp+.01, scale=00)
     fct.mean.exp =fct.mean.exp
   }
   out.array[1,,'ltv'] = log(fct.mean.exp)
@@ -274,8 +274,8 @@ make_parameter_mat = function(num_mice, gen.mod){
     true.param.gen = matrix(nrow=length(param_names), ncol=3)
     colnames(true.param.gen) = c("m","var",'upper')
     rownames(true.param.gen)=param_names
-    true.param.gen[,'m'] = c(.5,.15,.1,.516,.2)
-    true.param.gen[,'var'] =c(0,0,0,0,1)
+    true.param.gen[,'m'] = c(.9,.9,.1,.2,.2)
+    true.param.gen[,'var'] =c(0.00,0,0,0.0000,1)
     true.param.gen[,'upper'] = c(1,1,1,1,1)
     for(pp in param_names){
       minibatch_parameters[,pp] = truncnorm(test_num, loc = true.param.gen[pp,'m'], scale=true.param.gen[pp,'var'], lwr=0, upr=true.param.gen[pp,'upper'])

@@ -90,8 +90,12 @@ obj.fnc = function(input_vec, pair.set,param_names, bounds, fixed_param_vec, los
   all.loss
 }
 
-optimize.model = function(pair.set, param_names, fixed_param_vec, loss.weights, bounds, mod.to.fit){
-  input_vec = unit.to.r(runif(length(param_names)))
+optimize.model = function(pair.set, param_names, fixed_param_vec, loss.weights, bounds, mod.to.fit, estimated.par=NULL){
+  random.starts=runif(length(param_names))
+  if(is.null(estimated.par)){
+  input_vec = unit.to.r(random.starts)}else{
+    input_vec = unit.to.r(estimated.par)
+  }
   names(input_vec) = param_names
   convert=length(setdiff(param_names, names(fixed_param_vec)))>1
   if(loss.weights['liklihood']>0){

@@ -201,7 +201,7 @@ make_parameter_mat = function(num_mice, gen.mod){
       colnames(true.param.gen) = c("m","var",'upper')
       rownames(true.param.gen)=param_names
       true.param.gen[,'m'] = c(.9,.15,.1,.516,.2)
-      true.param.gen[,'var'] =c(0,0,0,0,1)
+      true.param.gen[,'var'] =c(0.000001,0,0.00000,0.00000,1)
       true.param.gen[,'upper'] = c(1,1,1,1,1)
       for(pp in param_names){
         minibatch_parameters[,pp] = truncnorm(test_num, loc = true.param.gen[pp,'m'], scale=true.param.gen[pp,'var'], lwr=0, upr=true.param.gen[pp,'upper'])

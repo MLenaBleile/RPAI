@@ -200,7 +200,7 @@ make_parameter_mat = function(num_mice, gen.mod){
       true.param.gen = matrix(nrow=length(param_names), ncol=3)
       colnames(true.param.gen) = c("m","var",'upper')
       rownames(true.param.gen)=param_names
-      true.param.gen[,'m'] = c(.5,.5,.1,.216,.5)
+      true.param.gen[,'m'] = c(.9,.5,.1,.216,.5)
       true.param.gen[,'var'] =c(0.01,0,0,0,1)
       true.param.gen[,'upper'] = c(1,1,1,1,1)
       for(pp in param_names){
